@@ -1,0 +1,303 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
+
+from .models import ContactRecord, SyncStats
+
+
+class ContactsRepository:
+    def __init__(self, db_path: Path) -> None:
+        self.db_path = db_path
+
+    def initialize(self) -> None:
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as conn:
+            conn.executescript(
+                """
+                PRAGMA foreign_keys = ON;
+
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source TEXT NOT NULL,
+                    source_account TEXT NOT NULL,
+                    source_contact_id TEXT NOT NULL,
+                    display_name TEXT NOT NULL,
+                    given_name TEXT,
+                    family_name TEXT,
+                    nickname TEXT,
+                    organization TEXT,
+                    notes TEXT,
+                    active INTEGER NOT NULL DEFAULT 1,
+                    last_seen_sync_id INTEGER,
+                    raw_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(source, source_account, source_contact_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS contact_methods (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    contact_id INTEGER NOT NULL,
+                    kind TEXT NOT NULL,
+                    label TEXT,
+                    value TEXT NOT NULL,
+                    normalized_value TEXT,
+                    is_primary INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+                );
+
+                CREATE TABLE IF NOT EXISTS sync_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source TEXT NOT NULL,
+                    source_account TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TEXT,
+                    contacts_fetched INTEGER NOT NULL DEFAULT 0,
+                    contacts_written INTEGER NOT NULL DEFAULT 0,
+                    contacts_deactivated INTEGER NOT NULL DEFAULT 0,
+                    error_message TEXT
+                );
+                """
+            )
+
+    def begin_sync_run(self, *, source: str, source_account: str) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO sync_runs (source, source_account, status)
+                VALUES (?, ?, ?)
+                """,
+                (source, source_account, "running"),
+            )
+            return int(cursor.lastrowid)
+
+    def finish_sync_run(
+        self,
+        *,
+        sync_run_id: int,
+        status: str,
+        contacts_fetched: int,
+        contacts_written: int,
+        contacts_deactivated: int,
+        error_message: str | None = None,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE sync_runs
+                SET status = ?,
+                    completed_at = CURRENT_TIMESTAMP,
+                    contacts_fetched = ?,
+                    contacts_written = ?,
+                    contacts_deactivated = ?,
+                    error_message = ?
+                WHERE id = ?
+                """,
+                (
+                    status,
+                    contacts_fetched,
+                    contacts_written,
+                    contacts_deactivated,
+                    error_message,
+                    sync_run_id,
+                ),
+            )
+
+    def replace_contacts(
+        self,
+        *,
+        source: str,
+        source_account: str,
+        contacts: Iterable[ContactRecord],
+        sync_run_id: int,
+    ) -> SyncStats:
+        fetched_count = 0
+        written_count = 0
+
+        with self._connect() as conn:
+            for contact in contacts:
+                fetched_count += 1
+                self._upsert_contact(conn, contact=contact, sync_run_id=sync_run_id)
+                written_count += 1
+
+            deactivate_cursor = conn.execute(
+                """
+                UPDATE contacts
+                SET active = 0,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE source = ?
+                  AND source_account = ?
+                  AND active = 1
+                  AND COALESCE(last_seen_sync_id, 0) != ?
+                """,
+                (source, source_account, sync_run_id),
+            )
+            deactivated_count = int(deactivate_cursor.rowcount or 0)
+
+        return SyncStats(
+            fetched_count=fetched_count,
+            written_count=written_count,
+            deactivated_count=deactivated_count,
+            sync_run_id=sync_run_id,
+        )
+
+    def list_contacts(self, *, query: str | None = None, include_inactive: bool = False) -> list[dict[str, Any]]:
+        sql = """
+            SELECT c.id,
+                   c.source,
+                   c.source_account,
+                   c.source_contact_id,
+                   c.display_name,
+                   c.given_name,
+                   c.family_name,
+                   c.nickname,
+                   c.organization,
+                   c.notes,
+                   c.active,
+                   c.updated_at
+            FROM contacts AS c
+        """
+        params: list[Any] = []
+
+        if query:
+            sql += """
+                WHERE (
+                    c.display_name LIKE ?
+                    OR COALESCE(c.given_name, '') LIKE ?
+                    OR COALESCE(c.family_name, '') LIKE ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM contact_methods AS m
+                        WHERE m.contact_id = c.id
+                          AND (m.value LIKE ? OR COALESCE(m.normalized_value, '') LIKE ?)
+                    )
+                )
+            """
+            like_query = f"%{query}%"
+            params.extend([like_query, like_query, like_query, like_query, like_query])
+            if not include_inactive:
+                sql += " AND c.active = 1"
+        elif not include_inactive:
+            sql += " WHERE c.active = 1"
+
+        sql += " ORDER BY c.display_name COLLATE NOCASE"
+
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            return [self._row_to_contact_summary(conn, row["id"], dict(row)) for row in rows]
+
+    def export_contacts(self, *, include_inactive: bool = False) -> list[dict[str, Any]]:
+        return self.list_contacts(include_inactive=include_inactive)
+
+    def write_export_json(self, *, output_path: Path, include_inactive: bool = False) -> Path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = self.export_contacts(include_inactive=include_inactive)
+        output_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return output_path
+
+    def _upsert_contact(self, conn: sqlite3.Connection, *, contact: ContactRecord, sync_run_id: int) -> None:
+        raw_json = json.dumps(contact.raw_payload, ensure_ascii=False, sort_keys=True)
+        cursor = conn.execute(
+            """
+            INSERT INTO contacts (
+                source,
+                source_account,
+                source_contact_id,
+                display_name,
+                given_name,
+                family_name,
+                nickname,
+                organization,
+                notes,
+                active,
+                last_seen_sync_id,
+                raw_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+            ON CONFLICT(source, source_account, source_contact_id) DO UPDATE SET
+                display_name = excluded.display_name,
+                given_name = excluded.given_name,
+                family_name = excluded.family_name,
+                nickname = excluded.nickname,
+                organization = excluded.organization,
+                notes = excluded.notes,
+                active = 1,
+                last_seen_sync_id = excluded.last_seen_sync_id,
+                raw_json = excluded.raw_json,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id
+            """,
+            (
+                contact.source,
+                contact.source_account,
+                contact.source_contact_id,
+                contact.display_name,
+                contact.given_name,
+                contact.family_name,
+                contact.nickname,
+                contact.organization,
+                contact.notes,
+                sync_run_id,
+                raw_json,
+            ),
+        )
+        contact_id = int(cursor.fetchone()["id"])
+        conn.execute("DELETE FROM contact_methods WHERE contact_id = ?", (contact_id,))
+        conn.executemany(
+            """
+            INSERT INTO contact_methods (
+                contact_id,
+                kind,
+                label,
+                value,
+                normalized_value,
+                is_primary
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    contact_id,
+                    method.kind,
+                    method.label,
+                    method.value,
+                    method.normalized_value,
+                    int(method.is_primary),
+                )
+                for method in contact.methods
+            ],
+        )
+
+    def _row_to_contact_summary(
+        self,
+        conn: sqlite3.Connection,
+        contact_id: int,
+        row: dict[str, Any],
+    ) -> dict[str, Any]:
+        methods = conn.execute(
+            """
+            SELECT kind, label, value, normalized_value, is_primary
+            FROM contact_methods
+            WHERE contact_id = ?
+            ORDER BY kind, is_primary DESC, value COLLATE NOCASE
+            """,
+            (contact_id,),
+        ).fetchall()
+        row["active"] = bool(row["active"])
+        row["methods"] = [dict(method) for method in methods]
+        return row
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn

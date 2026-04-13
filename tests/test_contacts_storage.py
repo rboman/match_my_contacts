@@ -1,0 +1,93 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from running_contacts.contacts.models import ContactMethod, ContactRecord
+from running_contacts.contacts.storage import ContactsRepository
+
+
+def make_contact(
+    source_contact_id: str,
+    display_name: str,
+    *,
+    email: str | None = None,
+) -> ContactRecord:
+    methods = []
+    if email:
+        methods.append(
+            ContactMethod(
+                kind="email",
+                value=email,
+                normalized_value=email.lower(),
+                is_primary=True,
+            )
+        )
+    return ContactRecord(
+        source_contact_id=source_contact_id,
+        display_name=display_name,
+        methods=methods,
+        raw_payload={"resourceName": source_contact_id, "displayName": display_name},
+    )
+
+
+def test_replace_contacts_is_idempotent_and_deactivates_missing(tmp_path: Path) -> None:
+    repository = ContactsRepository(tmp_path / "contacts.sqlite3")
+    repository.initialize()
+
+    first_sync_id = repository.begin_sync_run(source="google_people", source_account="default")
+    first_stats = repository.replace_contacts(
+        source="google_people",
+        source_account="default",
+        contacts=[
+            make_contact("people/1", "Alice Example", email="alice@example.com"),
+            make_contact("people/2", "Bob Example"),
+        ],
+        sync_run_id=first_sync_id,
+    )
+    repository.finish_sync_run(
+        sync_run_id=first_sync_id,
+        status="completed",
+        contacts_fetched=first_stats.fetched_count,
+        contacts_written=first_stats.written_count,
+        contacts_deactivated=first_stats.deactivated_count,
+    )
+
+    second_sync_id = repository.begin_sync_run(source="google_people", source_account="default")
+    second_stats = repository.replace_contacts(
+        source="google_people",
+        source_account="default",
+        contacts=[
+            make_contact("people/1", "Alice Example", email="alice@example.com"),
+        ],
+        sync_run_id=second_sync_id,
+    )
+
+    contacts = repository.list_contacts(include_inactive=True)
+
+    assert first_stats.fetched_count == 2
+    assert first_stats.deactivated_count == 0
+    assert second_stats.fetched_count == 1
+    assert second_stats.deactivated_count == 1
+    assert [contact["display_name"] for contact in contacts] == ["Alice Example", "Bob Example"]
+    assert contacts[0]["active"] is True
+    assert contacts[1]["active"] is False
+
+
+def test_write_export_json_includes_methods(tmp_path: Path) -> None:
+    repository = ContactsRepository(tmp_path / "contacts.sqlite3")
+    repository.initialize()
+
+    sync_run_id = repository.begin_sync_run(source="google_people", source_account="default")
+    repository.replace_contacts(
+        source="google_people",
+        source_account="default",
+        contacts=[make_contact("people/1", "Alice Example", email="alice@example.com")],
+        sync_run_id=sync_run_id,
+    )
+
+    output_path = repository.write_export_json(output_path=tmp_path / "contacts.json")
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert payload[0]["display_name"] == "Alice Example"
+    assert payload[0]["methods"][0]["value"] == "alice@example.com"

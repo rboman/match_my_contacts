@@ -25,9 +25,10 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 data/raw/
+data/google/
+data/exports/
 
 # Secrets / config locale
 .env
 credentials.json
 token.json
-

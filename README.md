@@ -1,125 +1,39 @@
 # running_contacts
 
-## Vision
+Outil local-first pour centraliser des contacts, importer des résultats de course, puis croiser les deux sans dépendre à chaque fois des sources externes.
 
-Ce projet fait partie d’un ensemble d’outils personnels en Python visant à exploiter et croiser différentes sources de données autour de mes contacts.
+## Problème visé
 
-Objectif global à long terme :
-- centraliser mes contacts dans une base locale réutilisable,
-- enrichir ces données à partir de différentes sources externes,
-- identifier automatiquement des correspondances entre mes contacts et d'autres jeux de données (courses, documents, etc.),
-- construire des outils simples pour explorer ces correspondances.
+Après une course avec plusieurs milliers de participants, l’objectif est de répondre rapidement à la question: quels contacts ont participé, et quel est leur résultat ? Le projet est pensé dès le départ comme trois briques indépendantes et réutilisables:
 
-Ce projet est volontairement local, modulaire et orienté réutilisation.
+1. `contacts`: importer et stocker les contacts localement.
+2. `race_results`: récupérer et normaliser les résultats d’une course.
+3. `matching`: croiser les données déjà stockées et produire un tableau exploitable.
 
----
+Une extension envisagée ensuite est l’analyse de documents longs, par exemple des PDF de réunions, pour retrouver les passages qui mentionnent certains contacts.
 
-## Cas d’usage initial
+## Choix d’architecture
 
-Identifier quels contacts ont participé à une course à pied (ex: 15 km de Liège Métropole), et obtenir leurs résultats.
-
-Cela implique :
-1. récupérer mes contacts (Google Contacts),
-2. récupérer les résultats d’une course (scraping ou API),
-3. faire correspondre les noms,
-4. afficher un résumé exploitable.
-
----
-
-## Extensions prévues
-
-Le projet est conçu pour être étendu à d’autres cas d’usage similaires :
-
-- analyser des documents (PDF, PV de réunion) pour détecter les mentions de contacts,
-- enrichir les contacts avec des informations externes,
-- agréger plusieurs sources de résultats sportifs,
-- construire des outils d’exploration (CLI, export CSV, etc.).
-
----
-
-## Philosophie du projet
-
-- Projet **local-first** (pas de backend distant)
-- Code **simple, lisible, modulaire**
-- Développement **incrémental**
-- Réutilisation maximale des modules
-- Pas d’overengineering
-- Préférence pour la **standard library Python** quand possible
-
----
-
-## Architecture cible (évolutive)
-
-Le projet est structuré en modules indépendants :
-
-- `contacts/`
-  - synchronisation et stockage des contacts (Google, local, etc.)
-- `race_results/`
-  - récupération et parsing des résultats de course (par provider)
-- `matching/`
-  - logique de correspondance entre contacts et données externes
-- `cli.py`
-  - point d’entrée CLI (Typer)
-
-Chaque module doit pouvoir être utilisé indépendamment.
-
----
-
-## Stockage des données
-
-- Base principale : **SQLite (local)**
-- Données brutes : `data/raw/`
-- Exports éventuels : JSON / CSV
-
-SQLite est utilisé comme source de vérité locale.
-
----
-
-## Contraintes techniques
-
-- Python 3.12+
-- CLI avec Typer
-- Tests avec pytest
-- Pas d’ORM au départ (utilisation de `sqlite3`)
-- Typage Python encouragé
-
----
+- Source de vérité locale: SQLite.
+- Exports secondaires: JSON/CSV selon les besoins.
+- Code organisé par domaines réutilisables, pas comme un seul script.
+- Projet local, sans backend distant.
+- Pas d’ORM en première intention: `sqlite3` suffit.
 
 ## État actuel
 
-Projet en phase initiale :
-- mise en place de la structure
-- future implémentation de la base SQLite
-- futures commandes CLI de base
+La première brique `contacts` est en place pour un compte Google:
 
----
+- OAuth Desktop via Google People API.
+- Synchronisation complète réexécutable vers `data/contacts.sqlite3`.
+- Consultation locale sans appel réseau.
+- Export JSON de l’état local.
 
-## Développement avec Codex CLI
+Le stockage local repose sur trois tables:
 
-Ce projet est développé avec assistance IA (Codex CLI).
-
-Principes importants :
-- travailler par petites étapes,
-- demander des plans avant les modifications complexes,
-- éviter les changements larges ou non demandés,
-- privilégier la simplicité.
-
-Les instructions détaillées pour l’agent sont définies dans `AGENTS.md`.
-
----
-
-## Roadmap (indicative)
-
-1. Initialisation du projet et CLI
-2. Ajout SQLite + commandes de base
-3. Gestion locale des contacts
-4. Intégration Google Contacts
-5. Import des résultats de course
-6. Matching des noms
-7. Export des résultats
-8. Extensions (PDF, autres sources)
-
----
+- `contacts`
+- `contact_methods`
+- `sync_runs`
 
 ## Installation
 
@@ -129,8 +43,51 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Usage (temporaire)
+## Préparer l’accès Google Contacts
+
+1. Créer un projet Google Cloud.
+2. Activer Google People API.
+3. Créer des identifiants OAuth pour une application Desktop.
+4. Télécharger le fichier `credentials.json`.
+
+Le fichier d’identifiants peut rester hors du dépôt. Le token OAuth généré par la CLI est stocké localement sous `data/google/token.json` par défaut.
+
+## Commandes utiles
+
+Tester la CLI:
 
 ```bash
 running-contacts hello
 ```
+
+Synchroniser les contacts Google vers SQLite:
+
+```bash
+running-contacts contacts sync --credentials /chemin/vers/credentials.json
+```
+
+Lister les contacts locaux:
+
+```bash
+running-contacts contacts list
+running-contacts contacts list --query dupont
+```
+
+Exporter l’état local en JSON:
+
+```bash
+running-contacts contacts export-json --output data/exports/contacts.json
+```
+
+Lancer les tests:
+
+```bash
+pytest -q
+```
+
+## Roadmap courte
+
+1. Stabiliser la brique `contacts`.
+2. Ajouter un connecteur `race_results` pour ACN Timing.
+3. Introduire la normalisation et le matching de noms.
+4. Produire une sortie terminal/CSV, puis éventuellement une petite UI locale.
