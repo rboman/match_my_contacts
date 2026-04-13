@@ -7,6 +7,8 @@ from typer.testing import CliRunner
 from running_contacts.cli import app
 from running_contacts.contacts.models import SyncStats
 from running_contacts.contacts.storage import ContactsRepository
+from running_contacts.race_results.models import RaceFetchStats
+from running_contacts.race_results.storage import RaceResultsRepository
 
 
 runner = CliRunner()
@@ -96,3 +98,41 @@ def test_contacts_list_command_reads_local_database(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "No contacts found." in result.stdout
+
+
+def test_race_results_fetch_acn_command(monkeypatch: object, tmp_path: Path) -> None:
+    db_path = tmp_path / "race_results.sqlite3"
+    raw_dir = tmp_path / "raw"
+
+    def fake_fetch_acn_results(**_: object) -> RaceFetchStats:
+        return RaceFetchStats(dataset_id=7, results_count=42)
+
+    monkeypatch.setattr("running_contacts.cli.fetch_acn_results", fake_fetch_acn_results)
+
+    result = runner.invoke(
+        app,
+        [
+            "race-results",
+            "fetch-acn",
+            "--url",
+            "https://www.acn-timing.com/?lng=FR#/events/1/ctx/demo/generic/abc/home/LIVE1",
+            "--db-path",
+            str(db_path),
+            "--raw-dir",
+            str(raw_dir),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "dataset 7" in result.stdout
+
+
+def test_race_results_list_datasets_command(tmp_path: Path) -> None:
+    db_path = tmp_path / "race_results.sqlite3"
+    repository = RaceResultsRepository(db_path)
+    repository.initialize()
+
+    result = runner.invoke(app, ["race-results", "list-datasets", "--db-path", str(db_path)])
+
+    assert result.exit_code == 0
+    assert "No race datasets found." in result.stdout

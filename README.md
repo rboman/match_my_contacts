@@ -35,6 +35,14 @@ Le stockage local repose sur trois tables:
 - `contact_methods`
 - `sync_runs`
 
+La deuxième brique `race_results` est maintenant en place pour ACN Timing:
+
+- parsing d’URL publique ACN Timing,
+- récupération des métadonnées d’événement via Chronorace,
+- récupération du tableau de résultats via l’API Chronorace utilisée par ACN,
+- snapshot JSON brut sous `data/raw/acn_timing/`,
+- stockage SQLite local dans `data/race_results.sqlite3`.
+
 ## Installation
 
 ```bash
@@ -68,6 +76,19 @@ running-contacts contacts sync
 running-contacts contacts sync --credentials /chemin/vers/credentials.json
 ```
 
+Récupérer un tableau de résultats ACN Timing:
+
+```bash
+running-contacts race-results fetch-acn --url 'https://www.acn-timing.com/?lng=FR#/events/2157220339092161/ctx/20260412_liege/generic/197994_1/home/LIVE1'
+```
+
+Lister les datasets de résultats locaux:
+
+```bash
+running-contacts race-results list-datasets
+running-contacts race-results list-results --dataset-id 1 --query dupont
+```
+
 Lister les contacts locaux:
 
 ```bash
@@ -90,6 +111,6 @@ pytest -q
 ## Roadmap courte
 
 1. Stabiliser la brique `contacts`.
-2. Ajouter un connecteur `race_results` pour ACN Timing.
-3. Introduire la normalisation et le matching de noms.
-4. Produire une sortie terminal/CSV, puis éventuellement une petite UI locale.
+2. Introduire la normalisation et le matching de noms entre `contacts` et `race_results`.
+3. Produire une sortie terminal/CSV dédiée au matching.
+4. Étendre `race_results` à d’autres providers si nécessaire.
