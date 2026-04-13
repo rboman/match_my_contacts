@@ -13,7 +13,7 @@ pip install -e .
 ```
 
 Run the CLI locally with `running-contacts hello` to confirm the entry point works. Use `pytest -q` to run tests. At the moment the suite is empty, so contributors adding behavior should add tests alongside the change.
-Run the CLI locally with `running-contacts hello` to confirm the entry point works. Use `running-contacts contacts sync --credentials /path/to/credentials.json` for the Google Contacts slice, `running-contacts race-results fetch-acn --url 'https://…'` for ACN Timing ingestion, `running-contacts contacts list` or `running-contacts race-results list-datasets` to inspect local caches, and `pytest -q` to run tests.
+Run the CLI locally with `running-contacts hello` to confirm the entry point works. Use `running-contacts contacts sync --credentials /path/to/credentials.json` for the Google Contacts slice, `running-contacts race-results fetch-acn --url 'https://…'` for ACN Timing ingestion, `running-contacts matching run --dataset-id 1` for local matching, `running-contacts contacts list` or `running-contacts race-results list-datasets` to inspect local caches, and `pytest -q` to run tests.
 
 ## Coding Style & Naming Conventions
 Target Python 3.11+ and prefer the standard library where practical. Follow PEP 8: 4-space indentation, `snake_case` for functions and modules, `PascalCase` for classes, and short, explicit docstrings where they add value. Keep CLI commands thin: put I/O orchestration in service modules and persistence in repository-style modules. Typing is expected for public functions, parsing code, and data models.
@@ -25,4 +25,4 @@ Use `pytest` for all automated tests. Mirror the package structure under `tests/
 Recent history uses short, imperative commit subjects such as `Add gitignore and initial project skeleton`. Keep that pattern: one-line summary, imperative mood, and specific scope. Pull requests should explain the functional change, note any new commands or data expectations, and link related issues or notes when relevant. Include CLI examples when behavior visible to users changes.
 
 ## Data & Configuration Notes
-Treat `data/` as local workspace data. Do not commit private contact exports, credentials, OAuth tokens, or generated datasets unless they are sanitized and intentionally added as fixtures. SQLite is the local source of truth; JSON is an export/debug format, not the primary store.
+Treat `data/` as local workspace data. Do not commit private contact exports, credentials, OAuth tokens, generated race datasets, or match exports unless they are sanitized and intentionally added as fixtures. SQLite is the local source of truth; JSON and CSV are export/debug formats, not the primary store.

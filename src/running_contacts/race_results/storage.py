@@ -192,6 +192,38 @@ class RaceResultsRepository:
             ).fetchall()
             return [dict(row) for row in rows]
 
+    def get_dataset(self, *, dataset_id: int) -> dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id,
+                       provider,
+                       source_url,
+                       external_event_id,
+                       context_db,
+                       report_key,
+                       report_path,
+                       event_title,
+                       event_date,
+                       event_location,
+                       event_country,
+                       total_results,
+                       raw_event_path,
+                       raw_results_path,
+                       metadata_json,
+                       updated_at
+                FROM race_datasets
+                WHERE id = ?
+                """,
+                (dataset_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Dataset {dataset_id} not found")
+
+        payload = dict(row)
+        payload["metadata"] = json.loads(payload.pop("metadata_json"))
+        return payload
+
     def list_results(
         self,
         *,

@@ -4,12 +4,14 @@ import typer
 
 from running_contacts.contacts.service import sync_google_contacts
 from running_contacts.contacts.storage import ContactsRepository
+from running_contacts.matching.service import export_matches_csv, match_dataset
 from running_contacts.race_results.service import fetch_acn_results
 from running_contacts.race_results.storage import RaceResultsRepository
 
 app = typer.Typer()
 contacts_app = typer.Typer(help="Synchroniser et interroger les contacts locaux.")
 race_results_app = typer.Typer(help="Recuperer et interroger les resultats de course locaux.")
+matching_app = typer.Typer(help="Croiser les contacts locaux avec des resultats de course locaux.")
 
 DEFAULT_DB_PATH = Path("data/contacts.sqlite3")
 DEFAULT_TOKEN_PATH = Path("data/google/token.json")
@@ -17,6 +19,7 @@ DEFAULT_EXPORT_PATH = Path("data/exports/contacts.json")
 DEFAULT_CREDENTIALS_PATH = Path("credentials.json")
 DEFAULT_RACE_DB_PATH = Path("data/race_results.sqlite3")
 DEFAULT_RACE_RAW_DIR = Path("data/raw/acn_timing")
+DEFAULT_MATCH_EXPORT_PATH = Path("data/exports/matches.csv")
 
 
 @app.callback()
@@ -270,6 +273,151 @@ def race_results_export_json(
 
 
 app.add_typer(race_results_app, name="race-results")
+
+
+@matching_app.command("run")
+def matching_run(
+    dataset_id: int = typer.Option(
+        ...,
+        "--dataset-id",
+        help="Identifiant local du dataset de resultats a comparer.",
+    ),
+    contacts_db_path: Path = typer.Option(
+        DEFAULT_DB_PATH,
+        "--contacts-db-path",
+        help="Chemin vers la base SQLite des contacts.",
+    ),
+    results_db_path: Path = typer.Option(
+        DEFAULT_RACE_DB_PATH,
+        "--results-db-path",
+        help="Chemin vers la base SQLite des resultats.",
+    ),
+    min_score: float = typer.Option(
+        95.0,
+        "--min-score",
+        min=0.0,
+        max=100.0,
+        help="Score fuzzy minimal pour accepter un match.",
+    ),
+    min_gap: float = typer.Option(
+        3.0,
+        "--min-gap",
+        min=0.0,
+        max=100.0,
+        help="Ecart minimal entre le meilleur et le deuxieme candidat.",
+    ),
+    include_ambiguous: bool = typer.Option(
+        False,
+        "--include-ambiguous",
+        help="Afficher aussi les candidats ambigus non acceptes automatiquement.",
+    ),
+    limit: int | None = typer.Option(
+        None,
+        "--limit",
+        min=1,
+        help="Limiter le nombre de lignes affichees.",
+    ),
+) -> None:
+    """Croise un dataset de course avec les contacts locaux."""
+    report = match_dataset(
+        contacts_db_path=contacts_db_path,
+        results_db_path=results_db_path,
+        dataset_id=dataset_id,
+        min_score=min_score,
+        min_gap=min_gap,
+    )
+
+    typer.echo(
+        f"Dataset {dataset_id}: {report.dataset['event_title']} "
+        f"({report.dataset['event_date']}, {report.dataset['event_location']})"
+    )
+    typer.echo(
+        f"{len(report.accepted_matches)} accepted matches, "
+        f"{len(report.ambiguous_matches)} ambiguous, "
+        f"{report.unmatched_count} unmatched "
+        f"across {report.results_count} results and {report.contacts_count} contacts."
+    )
+
+    displayed = report.accepted_matches[:limit] if limit else report.accepted_matches
+    if not displayed:
+        typer.echo("No accepted matches found.")
+    else:
+        for match in displayed:
+            parts = [
+                match.position_text or "-",
+                match.athlete_name,
+                "->",
+                match.contact_name or "?",
+                f"{match.match_method}:{match.score:.1f}",
+            ]
+            if match.finish_time:
+                parts.append(match.finish_time)
+            if match.team:
+                parts.append(match.team)
+            typer.echo(" | ".join(parts))
+
+    if include_ambiguous and report.ambiguous_matches:
+        typer.echo("Ambiguous candidates:")
+        ambiguous_displayed = report.ambiguous_matches[:limit] if limit else report.ambiguous_matches
+        for match in ambiguous_displayed:
+            typer.echo(
+                f"{match.athlete_name} -> {match.contact_name or '?'} "
+                f"(score {match.score:.1f}, gap {match.confidence_gap:.1f})"
+            )
+
+
+@matching_app.command("export-csv")
+def matching_export_csv(
+    dataset_id: int = typer.Option(
+        ...,
+        "--dataset-id",
+        help="Identifiant local du dataset de resultats a comparer.",
+    ),
+    output_path: Path = typer.Option(
+        DEFAULT_MATCH_EXPORT_PATH,
+        "--output",
+        help="Chemin du fichier CSV a produire.",
+    ),
+    contacts_db_path: Path = typer.Option(
+        DEFAULT_DB_PATH,
+        "--contacts-db-path",
+        help="Chemin vers la base SQLite des contacts.",
+    ),
+    results_db_path: Path = typer.Option(
+        DEFAULT_RACE_DB_PATH,
+        "--results-db-path",
+        help="Chemin vers la base SQLite des resultats.",
+    ),
+    min_score: float = typer.Option(
+        95.0,
+        "--min-score",
+        min=0.0,
+        max=100.0,
+        help="Score fuzzy minimal pour accepter un match.",
+    ),
+    min_gap: float = typer.Option(
+        3.0,
+        "--min-gap",
+        min=0.0,
+        max=100.0,
+        help="Ecart minimal entre le meilleur et le deuxieme candidat.",
+    ),
+) -> None:
+    """Exporte les matches acceptes au format CSV."""
+    report = match_dataset(
+        contacts_db_path=contacts_db_path,
+        results_db_path=results_db_path,
+        dataset_id=dataset_id,
+        min_score=min_score,
+        min_gap=min_gap,
+    )
+    export_path = export_matches_csv(report=report, output_path=output_path)
+    typer.echo(
+        f"Exported {len(report.accepted_matches)} matches to {export_path}"
+    )
+
+
+app.add_typer(matching_app, name="matching")
 
 
 if __name__ == "__main__":

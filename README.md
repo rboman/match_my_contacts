@@ -43,6 +43,14 @@ La deuxième brique `race_results` est maintenant en place pour ACN Timing:
 - snapshot JSON brut sous `data/raw/acn_timing/`,
 - stockage SQLite local dans `data/race_results.sqlite3`.
 
+La troisième brique `matching` est maintenant disponible:
+
+- matching 100% local entre `contacts` et `race_results`,
+- normalisation des noms (accents, casse, ponctuation),
+- match exact puis fuzzy avec `rapidfuzz`,
+- garde-fou d’ambiguïté via un score minimal et un écart minimal entre candidats,
+- affichage terminal et export CSV.
+
 ## Installation
 
 ```bash
@@ -89,6 +97,14 @@ running-contacts race-results list-datasets
 running-contacts race-results list-results --dataset-id 1 --query dupont
 ```
 
+Lancer le matching local:
+
+```bash
+running-contacts matching run --dataset-id 1
+running-contacts matching run --dataset-id 1 --min-score 92 --min-gap 4
+running-contacts matching export-csv --dataset-id 1 --output data/exports/matches.csv
+```
+
 Lister les contacts locaux:
 
 ```bash
@@ -111,6 +127,6 @@ pytest -q
 ## Roadmap courte
 
 1. Stabiliser la brique `contacts`.
-2. Introduire la normalisation et le matching de noms entre `contacts` et `race_results`.
-3. Produire une sortie terminal/CSV dédiée au matching.
+2. Ajouter des alias manuels de contacts pour corriger les faux négatifs connus.
+3. Affiner le matching avec revue manuelle ou statuts de validation.
 4. Étendre `race_results` à d’autres providers si nécessaire.

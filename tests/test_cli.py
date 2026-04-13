@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 from running_contacts.cli import app
 from running_contacts.contacts.models import SyncStats
 from running_contacts.contacts.storage import ContactsRepository
+from running_contacts.matching.models import MatchReport, MatchResult
 from running_contacts.race_results.models import RaceFetchStats
 from running_contacts.race_results.storage import RaceResultsRepository
 
@@ -136,3 +137,41 @@ def test_race_results_list_datasets_command(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "No race datasets found." in result.stdout
+
+
+def test_matching_run_command(monkeypatch: object) -> None:
+    def fake_match_dataset(**_: object) -> MatchReport:
+        return MatchReport(
+            dataset={"event_title": "Demo Race", "event_date": "12/04/2026", "event_location": "Liege"},
+            accepted_matches=[
+                MatchResult(
+                    status="accepted",
+                    match_method="exact",
+                    score=100.0,
+                    matched_alias="Jean Dupont",
+                    confidence_gap=100.0,
+                    result_id=1,
+                    dataset_id=7,
+                    athlete_name="Jean Dupont",
+                    position_text="1.",
+                    bib="101",
+                    finish_time="0:40:00",
+                    team="Club A",
+                    category="SEH",
+                    contact_id=1,
+                    contact_name="Jean Dupont",
+                )
+            ],
+            ambiguous_matches=[],
+            unmatched_count=10,
+            contacts_count=20,
+            results_count=11,
+        )
+
+    monkeypatch.setattr("running_contacts.cli.match_dataset", fake_match_dataset)
+
+    result = runner.invoke(app, ["matching", "run", "--dataset-id", "7"])
+
+    assert result.exit_code == 0
+    assert "1 accepted matches" in result.stdout
+    assert "Jean Dupont" in result.stdout
