@@ -41,6 +41,45 @@ def test_contacts_sync_command(monkeypatch: object, tmp_path: Path) -> None:
     assert "3 fetched, 3 written, 0 deactivated" in result.stdout
 
 
+def test_contacts_sync_uses_default_credentials_file(monkeypatch: object, tmp_path: Path) -> None:
+    credentials_path = tmp_path / "credentials.json"
+    credentials_path.write_text("{}", encoding="utf-8")
+    db_path = tmp_path / "contacts.sqlite3"
+    token_path = tmp_path / "token.json"
+    captured: dict[str, Path] = {}
+
+    def fake_sync_google_contacts(**kwargs: object) -> SyncStats:
+        captured["credentials_path"] = kwargs["credentials_path"]  # type: ignore[index]
+        return SyncStats(fetched_count=1, written_count=1, deactivated_count=0, sync_run_id=1)
+
+    monkeypatch.setattr("running_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "contacts",
+            "sync",
+            "--db-path",
+            str(db_path),
+            "--token-path",
+            str(token_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["credentials_path"] == Path("credentials.json")
+
+
+def test_contacts_sync_requires_credentials_when_default_is_missing(monkeypatch: object, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["contacts", "sync"])
+
+    assert result.exit_code != 0
+    assert "Google OAuth credentials file not found" in result.output
+
+
 def test_contacts_list_command_reads_local_database(tmp_path: Path) -> None:
     db_path = tmp_path / "contacts.sqlite3"
     repository = ContactsRepository(db_path)

@@ -51,6 +51,7 @@ pip install -e .
 4. Télécharger le fichier `credentials.json`.
 
 Le fichier d’identifiants peut rester hors du dépôt. Le token OAuth généré par la CLI est stocké localement sous `data/google/token.json` par défaut.
+Si `credentials.json` est présent à la racine du dépôt, la commande de sync l’utilise automatiquement.
 
 ## Commandes utiles
 
@@ -63,6 +64,7 @@ running-contacts hello
 Synchroniser les contacts Google vers SQLite:
 
 ```bash
+running-contacts contacts sync
 running-contacts contacts sync --credentials /chemin/vers/credentials.json
 ```
 

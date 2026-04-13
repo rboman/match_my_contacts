@@ -11,6 +11,7 @@ contacts_app = typer.Typer(help="Synchroniser et interroger les contacts locaux.
 DEFAULT_DB_PATH = Path("data/contacts.sqlite3")
 DEFAULT_TOKEN_PATH = Path("data/google/token.json")
 DEFAULT_EXPORT_PATH = Path("data/exports/contacts.json")
+DEFAULT_CREDENTIALS_PATH = Path("credentials.json")
 
 
 @app.callback()
@@ -26,14 +27,12 @@ def hello() -> None:
 
 @contacts_app.command("sync")
 def contacts_sync(
-    credentials_path: Path = typer.Option(
-        ...,
+    credentials_path: Path | None = typer.Option(
+        None,
         "--credentials",
-        exists=True,
         file_okay=True,
         dir_okay=False,
-        readable=True,
-        help="Chemin vers le fichier OAuth client secret Google.",
+        help="Chemin vers le fichier OAuth client secret Google. Par defaut, utilise ./credentials.json si present.",
     ),
     db_path: Path = typer.Option(
         DEFAULT_DB_PATH,
@@ -52,8 +51,15 @@ def contacts_sync(
     ),
 ) -> None:
     """Synchronise Google Contacts vers SQLite."""
+    resolved_credentials_path = credentials_path or DEFAULT_CREDENTIALS_PATH
+    if not resolved_credentials_path.exists() or not resolved_credentials_path.is_file():
+        raise typer.BadParameter(
+            "Google OAuth credentials file not found. "
+            "Pass --credentials /path/to/credentials.json or place credentials.json at the repository root."
+        )
+
     stats = sync_google_contacts(
-        credentials_path=credentials_path,
+        credentials_path=resolved_credentials_path,
         token_path=token_path,
         db_path=db_path,
         source_account=account,
