@@ -137,6 +137,12 @@ Lancer les tests:
 pytest -q
 ```
 
+Guide pratique d'utilisation:
+
+```bash
+sed -n '1,220p' USAGE.md
+```
+
 ## Roadmap courte
 
 1. Stabiliser la brique `contacts`.

@@ -5,6 +5,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from running_contacts.matching.normalization import normalize_person_name
+
 from .models import RaceDataset, RaceResultRow
 
 
@@ -65,6 +67,16 @@ class RaceResultsRepository:
 
                 CREATE INDEX IF NOT EXISTS idx_race_results_dataset_id ON race_results(dataset_id);
                 CREATE INDEX IF NOT EXISTS idx_race_results_athlete_name ON race_results(athlete_name);
+
+                CREATE TABLE IF NOT EXISTS race_dataset_aliases (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    dataset_id INTEGER NOT NULL,
+                    alias_text TEXT NOT NULL,
+                    normalized_alias TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(normalized_alias),
+                    FOREIGN KEY(dataset_id) REFERENCES race_datasets(id) ON DELETE CASCADE
+                );
 
                 CREATE TABLE IF NOT EXISTS matching_reviews (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -204,6 +216,88 @@ class RaceResultsRepository:
                 ORDER BY updated_at DESC, id DESC
                 """
             ).fetchall()
+            datasets = [dict(row) for row in rows]
+            for dataset in datasets:
+                dataset["aliases"] = self._fetch_dataset_aliases(conn, dataset_id=int(dataset["id"]))
+            return datasets
+
+    def resolve_dataset_selector(self, selector: str) -> int:
+        normalized_selector = normalize_person_name(selector)
+        with self._connect() as conn:
+            if selector.isdigit():
+                row = conn.execute(
+                    "SELECT id FROM race_datasets WHERE id = ?",
+                    (int(selector),),
+                ).fetchone()
+                if row is not None:
+                    return int(row["id"])
+
+            row = conn.execute(
+                """
+                SELECT dataset_id
+                FROM race_dataset_aliases
+                WHERE normalized_alias = ?
+                """,
+                (normalized_selector,),
+            ).fetchone()
+            if row is not None:
+                return int(row["dataset_id"])
+
+        raise KeyError(f"Dataset selector '{selector}' not found")
+
+    def add_dataset_alias(self, *, dataset_id: int, alias_text: str) -> None:
+        normalized_alias = normalize_person_name(alias_text)
+        if not normalized_alias:
+            raise ValueError("Dataset alias cannot be empty")
+
+        with self._connect() as conn:
+            exists = conn.execute("SELECT 1 FROM race_datasets WHERE id = ?", (dataset_id,)).fetchone()
+            if exists is None:
+                raise KeyError(f"Dataset {dataset_id} not found")
+            conn.execute(
+                """
+                INSERT INTO race_dataset_aliases (dataset_id, alias_text, normalized_alias)
+                VALUES (?, ?, ?)
+                ON CONFLICT(normalized_alias) DO UPDATE SET
+                    dataset_id = excluded.dataset_id,
+                    alias_text = excluded.alias_text
+                """,
+                (dataset_id, alias_text.strip(), normalized_alias),
+            )
+
+    def remove_dataset_alias(self, *, alias_text: str) -> bool:
+        normalized_alias = normalize_person_name(alias_text)
+        if not normalized_alias:
+            return False
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM race_dataset_aliases
+                WHERE normalized_alias = ?
+                """,
+                (normalized_alias,),
+            )
+            return bool(cursor.rowcount)
+
+    def list_dataset_aliases(self, *, dataset_id: int | None = None) -> list[dict[str, Any]]:
+        sql = """
+            SELECT a.id,
+                   a.dataset_id,
+                   d.event_title,
+                   d.event_date,
+                   a.alias_text,
+                   a.normalized_alias,
+                   a.created_at
+            FROM race_dataset_aliases AS a
+            JOIN race_datasets AS d ON d.id = a.dataset_id
+        """
+        params: list[Any] = []
+        if dataset_id is not None:
+            sql += " WHERE a.dataset_id = ?"
+            params.append(dataset_id)
+        sql += " ORDER BY d.event_date DESC, d.event_title COLLATE NOCASE, a.alias_text COLLATE NOCASE"
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
             return [dict(row) for row in rows]
 
     def get_dataset(self, *, dataset_id: int) -> dict[str, Any]:
@@ -236,6 +330,8 @@ class RaceResultsRepository:
 
         payload = dict(row)
         payload["metadata"] = json.loads(payload.pop("metadata_json"))
+        with self._connect() as conn:
+            payload["aliases"] = self._fetch_dataset_aliases(conn, dataset_id=dataset_id)
         return payload
 
     def list_results(
@@ -405,3 +501,15 @@ class RaceResultsRepository:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
+
+    def _fetch_dataset_aliases(self, conn: sqlite3.Connection, *, dataset_id: int) -> list[str]:
+        rows = conn.execute(
+            """
+            SELECT alias_text
+            FROM race_dataset_aliases
+            WHERE dataset_id = ?
+            ORDER BY alias_text COLLATE NOCASE
+            """,
+            (dataset_id,),
+        ).fetchall()
+        return [str(row["alias_text"]) for row in rows]

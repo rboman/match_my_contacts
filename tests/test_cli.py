@@ -213,3 +213,49 @@ def test_contacts_add_alias_command(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Added alias" in result.stdout
     assert repository.get_contact(contact_id=contact_id)["aliases"] == ["Alice Ex"]
+
+
+def test_race_results_add_alias_command(tmp_path: Path) -> None:
+    db_path = tmp_path / "race_results.sqlite3"
+    repository = RaceResultsRepository(db_path)
+    repository.initialize()
+    dataset_id = repository.save_dataset(
+        dataset=make_race_dataset(),
+        results=[],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "race-results",
+            "add-alias",
+            "--dataset-id",
+            str(dataset_id),
+            "--alias",
+            "demo-race",
+            "--db-path",
+            str(db_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert repository.resolve_dataset_selector("demo-race") == dataset_id
+
+
+def make_race_dataset():
+    from running_contacts.race_results.models import RaceDataset
+
+    return RaceDataset(
+        provider="acn_timing",
+        source_url="https://example.test",
+        external_event_id="1",
+        context_db="demo",
+        report_key="LIVE1",
+        report_path="path",
+        event_title="Demo Race",
+        event_date="12/04/2026",
+        event_location="Liege",
+        event_country="BEL",
+        total_results=0,
+        metadata={},
+    )

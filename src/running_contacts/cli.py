@@ -4,7 +4,12 @@ import typer
 
 from running_contacts.contacts.service import sync_google_contacts
 from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.service import export_matches_csv, match_dataset
+from running_contacts.matching.service import (
+    export_selected_matches_csv,
+    filter_and_sort_matches,
+    match_dataset,
+    select_matches,
+)
 from running_contacts.race_results.service import fetch_acn_results
 from running_contacts.race_results.storage import RaceResultsRepository
 
@@ -20,6 +25,8 @@ DEFAULT_CREDENTIALS_PATH = Path("credentials.json")
 DEFAULT_RACE_DB_PATH = Path("data/race_results.sqlite3")
 DEFAULT_RACE_RAW_DIR = Path("data/raw/acn_timing")
 DEFAULT_MATCH_EXPORT_PATH = Path("data/exports/matches.csv")
+SORT_OPTIONS = ["position", "time", "athlete", "contact", "team", "score"]
+STATUS_OPTIONS = ["accepted", "ambiguous", "all"]
 
 
 @app.callback()
@@ -31,6 +38,33 @@ def main() -> None:
 def hello() -> None:
     """Teste que la CLI fonctionne."""
     print("running_contacts OK")
+
+
+def _resolve_dataset_id(
+    *,
+    repository: RaceResultsRepository,
+    dataset: str | None,
+    dataset_id: int | None,
+) -> int:
+    if dataset and dataset_id is not None:
+        raise typer.BadParameter("Use either --dataset or --dataset-id, not both.")
+    if dataset:
+        try:
+            return repository.resolve_dataset_selector(dataset)
+        except KeyError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+    if dataset_id is not None:
+        return dataset_id
+    raise typer.BadParameter("Missing dataset selector. Use --dataset or --dataset-id.")
+
+
+def _validate_option(value: str, *, allowed: list[str], option_name: str) -> str:
+    lowered = value.lower()
+    if lowered not in allowed:
+        raise typer.BadParameter(
+            f"Invalid value for {option_name}: {value}. Allowed values: {', '.join(allowed)}."
+        )
+    return lowered
 
 
 @contacts_app.command("sync")
@@ -255,20 +289,89 @@ def race_results_list_datasets(
         raise typer.Exit(code=0)
 
     for dataset in datasets:
+        aliases = ", ".join(dataset["aliases"])
         typer.echo(
             f"{dataset['id']}: {dataset['event_title']} "
             f"({dataset['event_date']}, {dataset['event_location']}) "
             f"[{dataset['context_db']}/{dataset['report_key']}] "
             f"- {dataset['total_results']} rows"
+            f"{f' - aliases: {aliases}' if aliases else ''}"
+        )
+
+
+@race_results_app.command("add-alias")
+def race_results_add_alias(
+    dataset_id: int = typer.Option(..., "--dataset-id", help="Identifiant local du dataset."),
+    alias_text: str = typer.Option(..., "--alias", help="Alias a associer a cette course."),
+    db_path: Path = typer.Option(
+        DEFAULT_RACE_DB_PATH,
+        "--db-path",
+        help="Chemin vers la base SQLite locale des resultats.",
+    ),
+) -> None:
+    """Ajoute un alias manuel a une course locale."""
+    repository = RaceResultsRepository(db_path)
+    repository.initialize()
+    repository.add_dataset_alias(dataset_id=dataset_id, alias_text=alias_text)
+    typer.echo(f"Added alias to dataset {dataset_id}: {alias_text}")
+
+
+@race_results_app.command("remove-alias")
+def race_results_remove_alias(
+    alias_text: str = typer.Option(..., "--alias", help="Alias a supprimer."),
+    db_path: Path = typer.Option(
+        DEFAULT_RACE_DB_PATH,
+        "--db-path",
+        help="Chemin vers la base SQLite locale des resultats.",
+    ),
+) -> None:
+    """Supprime un alias manuel de course."""
+    repository = RaceResultsRepository(db_path)
+    repository.initialize()
+    removed = repository.remove_dataset_alias(alias_text=alias_text)
+    if not removed:
+        typer.echo("Alias not found.")
+        raise typer.Exit(code=1)
+    typer.echo(f"Removed dataset alias: {alias_text}")
+
+
+@race_results_app.command("list-aliases")
+def race_results_list_aliases(
+    dataset_id: int | None = typer.Option(
+        None,
+        "--dataset-id",
+        help="Limiter l'affichage a une course.",
+    ),
+    db_path: Path = typer.Option(
+        DEFAULT_RACE_DB_PATH,
+        "--db-path",
+        help="Chemin vers la base SQLite locale des resultats.",
+    ),
+) -> None:
+    """Liste les alias de courses enregistres."""
+    repository = RaceResultsRepository(db_path)
+    repository.initialize()
+    aliases = repository.list_dataset_aliases(dataset_id=dataset_id)
+    if not aliases:
+        typer.echo("No dataset aliases found.")
+        raise typer.Exit(code=0)
+    for alias in aliases:
+        typer.echo(
+            f"{alias['dataset_id']}: {alias['event_title']} ({alias['event_date']}) -> {alias['alias_text']}"
         )
 
 
 @race_results_app.command("list-results")
 def race_results_list_results(
-    dataset_id: int = typer.Option(
-        ...,
+    dataset: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Identifiant ou alias local du dataset a afficher.",
+    ),
+    dataset_id: int | None = typer.Option(
+        None,
         "--dataset-id",
-        help="Identifiant local du dataset a afficher.",
+        help="Compat: identifiant local du dataset a afficher.",
     ),
     db_path: Path = typer.Option(
         DEFAULT_RACE_DB_PATH,
@@ -291,7 +394,8 @@ def race_results_list_results(
     """Liste des resultats deja stockes localement."""
     repository = RaceResultsRepository(db_path)
     repository.initialize()
-    results = repository.list_results(dataset_id=dataset_id, query=query, limit=limit)
+    resolved_dataset_id = _resolve_dataset_id(repository=repository, dataset=dataset, dataset_id=dataset_id)
+    results = repository.list_results(dataset_id=resolved_dataset_id, query=query, limit=limit)
 
     if not results:
         typer.echo("No race results found.")
@@ -314,10 +418,15 @@ def race_results_list_results(
 
 @race_results_app.command("export-json")
 def race_results_export_json(
-    dataset_id: int = typer.Option(
-        ...,
+    dataset: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Identifiant ou alias local du dataset a exporter.",
+    ),
+    dataset_id: int | None = typer.Option(
+        None,
         "--dataset-id",
-        help="Identifiant local du dataset a exporter.",
+        help="Compat: identifiant local du dataset a exporter.",
     ),
     output_path: Path = typer.Option(
         Path("data/exports/race_results.json"),
@@ -333,7 +442,8 @@ def race_results_export_json(
     """Exporte un dataset de resultats au format JSON."""
     repository = RaceResultsRepository(db_path)
     repository.initialize()
-    export_path = repository.write_export_json(dataset_id=dataset_id, output_path=output_path)
+    resolved_dataset_id = _resolve_dataset_id(repository=repository, dataset=dataset, dataset_id=dataset_id)
+    export_path = repository.write_export_json(dataset_id=resolved_dataset_id, output_path=output_path)
     typer.echo(f"Exported race dataset to {export_path}")
 
 
@@ -342,10 +452,15 @@ app.add_typer(race_results_app, name="race-results")
 
 @matching_app.command("run")
 def matching_run(
-    dataset_id: int = typer.Option(
-        ...,
+    dataset: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Identifiant ou alias local du dataset de resultats.",
+    ),
+    dataset_id: int | None = typer.Option(
+        None,
         "--dataset-id",
-        help="Identifiant local du dataset de resultats a comparer.",
+        help="Compat: identifiant local du dataset de resultats a comparer.",
     ),
     contacts_db_path: Path = typer.Option(
         DEFAULT_DB_PATH,
@@ -384,16 +499,19 @@ def matching_run(
     ),
 ) -> None:
     """Croise un dataset de course avec les contacts locaux."""
+    results_repository = RaceResultsRepository(results_db_path)
+    results_repository.initialize()
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
     report = match_dataset(
         contacts_db_path=contacts_db_path,
         results_db_path=results_db_path,
-        dataset_id=dataset_id,
+        dataset_id=resolved_dataset_id,
         min_score=min_score,
         min_gap=min_gap,
     )
 
     typer.echo(
-        f"Dataset {dataset_id}: {report.dataset['event_title']} "
+        f"Dataset {resolved_dataset_id}: {report.dataset['event_title']} "
         f"({report.dataset['event_date']}, {report.dataset['event_location']})"
     )
     typer.echo(
@@ -436,12 +554,105 @@ def matching_run(
             )
 
 
+@matching_app.command("list")
+def matching_list(
+    dataset: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Identifiant ou alias local du dataset de resultats.",
+    ),
+    dataset_id: int | None = typer.Option(
+        None,
+        "--dataset-id",
+        help="Compat: identifiant local du dataset de resultats.",
+    ),
+    contacts_db_path: Path = typer.Option(
+        DEFAULT_DB_PATH,
+        "--contacts-db-path",
+        help="Chemin vers la base SQLite des contacts.",
+    ),
+    results_db_path: Path = typer.Option(
+        DEFAULT_RACE_DB_PATH,
+        "--results-db-path",
+        help="Chemin vers la base SQLite des resultats.",
+    ),
+    status: str = typer.Option(
+        "accepted",
+        "--status",
+        help="accepted, ambiguous, all",
+    ),
+    sort_by: str = typer.Option(
+        "position",
+        "--sort",
+        help="position, time, athlete, contact, team, score",
+    ),
+    desc: bool = typer.Option(False, "--desc", help="Tri descendant."),
+    team: str | None = typer.Option(None, "--team", help="Filtre sur l'equipe."),
+    name_query: str | None = typer.Option(None, "--name-query", help="Filtre sur nom resultat/contact."),
+    category: str | None = typer.Option(None, "--category", help="Filtre sur la categorie."),
+    reviewed_only: bool = typer.Option(False, "--reviewed-only", help="Limiter aux matches revus manuellement."),
+    limit: int | None = typer.Option(None, "--limit", min=1, help="Limiter le nombre de lignes affichees."),
+    min_score: float = typer.Option(95.0, "--min-score", min=0.0, max=100.0, help="Score fuzzy minimal."),
+    min_gap: float = typer.Option(3.0, "--min-gap", min=0.0, max=100.0, help="Ecart minimal entre candidats."),
+) -> None:
+    """Liste les matches avec tri et filtres."""
+    status = _validate_option(status, allowed=STATUS_OPTIONS, option_name="--status")
+    sort_by = _validate_option(sort_by, allowed=SORT_OPTIONS, option_name="--sort")
+    results_repository = RaceResultsRepository(results_db_path)
+    results_repository.initialize()
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
+    report = match_dataset(
+        contacts_db_path=contacts_db_path,
+        results_db_path=results_db_path,
+        dataset_id=resolved_dataset_id,
+        min_score=min_score,
+        min_gap=min_gap,
+    )
+    matches = filter_and_sort_matches(
+        select_matches(report, status=status),
+        name_query=name_query,
+        team=team,
+        category=category,
+        reviewed_only=reviewed_only,
+        sort_by=sort_by,
+        descending=desc,
+    )
+    if limit:
+        matches = matches[:limit]
+
+    if not matches:
+        typer.echo("No matches found.")
+        raise typer.Exit(code=0)
+
+    for match in matches:
+        parts = [
+            f"#{match.result_id}",
+            match.position_text or "-",
+            match.athlete_name,
+            "->",
+            f"{match.contact_name or '?'}{f' (contact {match.contact_id})' if match.contact_id else ''}",
+            f"{match.match_method}:{match.score:.1f}",
+        ]
+        if match.finish_time:
+            parts.append(match.finish_time)
+        if match.team:
+            parts.append(match.team)
+        if match.category:
+            parts.append(match.category)
+        typer.echo(" | ".join(parts))
+
+
 @matching_app.command("export-csv")
 def matching_export_csv(
-    dataset_id: int = typer.Option(
-        ...,
+    dataset: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Identifiant ou alias local du dataset de resultats.",
+    ),
+    dataset_id: int | None = typer.Option(
+        None,
         "--dataset-id",
-        help="Identifiant local du dataset de resultats a comparer.",
+        help="Compat: identifiant local du dataset de resultats a comparer.",
     ),
     output_path: Path = typer.Option(
         DEFAULT_MATCH_EXPORT_PATH,
@@ -472,24 +683,54 @@ def matching_export_csv(
         max=100.0,
         help="Ecart minimal entre le meilleur et le deuxieme candidat.",
     ),
+    status: str = typer.Option(
+        "accepted",
+        "--status",
+        help="accepted, ambiguous, all",
+    ),
+    sort_by: str = typer.Option(
+        "position",
+        "--sort",
+        help="position, time, athlete, contact, team, score",
+    ),
+    desc: bool = typer.Option(False, "--desc", help="Tri descendant."),
+    team: str | None = typer.Option(None, "--team", help="Filtre sur l'equipe."),
+    name_query: str | None = typer.Option(None, "--name-query", help="Filtre sur nom resultat/contact."),
+    category: str | None = typer.Option(None, "--category", help="Filtre sur la categorie."),
+    reviewed_only: bool = typer.Option(False, "--reviewed-only", help="Limiter aux matches revus manuellement."),
 ) -> None:
     """Exporte les matches acceptes au format CSV."""
+    status = _validate_option(status, allowed=STATUS_OPTIONS, option_name="--status")
+    sort_by = _validate_option(sort_by, allowed=SORT_OPTIONS, option_name="--sort")
+    results_repository = RaceResultsRepository(results_db_path)
+    results_repository.initialize()
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
     report = match_dataset(
         contacts_db_path=contacts_db_path,
         results_db_path=results_db_path,
-        dataset_id=dataset_id,
+        dataset_id=resolved_dataset_id,
         min_score=min_score,
         min_gap=min_gap,
     )
-    export_path = export_matches_csv(report=report, output_path=output_path)
+    matches = filter_and_sort_matches(
+        select_matches(report, status=status),
+        name_query=name_query,
+        team=team,
+        category=category,
+        reviewed_only=reviewed_only,
+        sort_by=sort_by,
+        descending=desc,
+    )
+    export_path = export_selected_matches_csv(matches=matches, output_path=output_path)
     typer.echo(
-        f"Exported {len(report.accepted_matches)} matches to {export_path}"
+        f"Exported {len(matches)} matches to {export_path}"
     )
 
 
 @matching_app.command("accept")
 def matching_accept(
-    dataset_id: int = typer.Option(..., "--dataset-id", help="Identifiant local du dataset."),
+    dataset: str | None = typer.Option(None, "--dataset", help="Identifiant ou alias local du dataset."),
+    dataset_id: int | None = typer.Option(None, "--dataset-id", help="Compat: identifiant local du dataset."),
     result_id: int = typer.Option(..., "--result-id", help="Identifiant local du resultat."),
     contact_id: int = typer.Option(..., "--contact-id", help="Identifiant local du contact."),
     note: str | None = typer.Option(None, "--note", help="Note libre de revue."),
@@ -511,8 +752,9 @@ def matching_accept(
 
     results_repository = RaceResultsRepository(results_db_path)
     results_repository.initialize()
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
     results_repository.set_match_review(
-        dataset_id=dataset_id,
+        dataset_id=resolved_dataset_id,
         result_id=result_id,
         status="accepted",
         contact_id=contact_id,
@@ -525,7 +767,8 @@ def matching_accept(
 
 @matching_app.command("reject")
 def matching_reject(
-    dataset_id: int = typer.Option(..., "--dataset-id", help="Identifiant local du dataset."),
+    dataset: str | None = typer.Option(None, "--dataset", help="Identifiant ou alias local du dataset."),
+    dataset_id: int | None = typer.Option(None, "--dataset-id", help="Compat: identifiant local du dataset."),
     result_id: int = typer.Option(..., "--result-id", help="Identifiant local du resultat."),
     note: str | None = typer.Option(None, "--note", help="Note libre de revue."),
     results_db_path: Path = typer.Option(
@@ -537,8 +780,9 @@ def matching_reject(
     """Marque un resultat comme non-match manuel."""
     results_repository = RaceResultsRepository(results_db_path)
     results_repository.initialize()
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
     results_repository.set_match_review(
-        dataset_id=dataset_id,
+        dataset_id=resolved_dataset_id,
         result_id=result_id,
         status="rejected",
         contact_id=None,
@@ -549,7 +793,8 @@ def matching_reject(
 
 @matching_app.command("clear-review")
 def matching_clear_review(
-    dataset_id: int = typer.Option(..., "--dataset-id", help="Identifiant local du dataset."),
+    dataset: str | None = typer.Option(None, "--dataset", help="Identifiant ou alias local du dataset."),
+    dataset_id: int | None = typer.Option(None, "--dataset-id", help="Compat: identifiant local du dataset."),
     result_id: int = typer.Option(..., "--result-id", help="Identifiant local du resultat."),
     results_db_path: Path = typer.Option(
         DEFAULT_RACE_DB_PATH,
@@ -560,7 +805,8 @@ def matching_clear_review(
     """Supprime une revue manuelle sur un resultat."""
     results_repository = RaceResultsRepository(results_db_path)
     results_repository.initialize()
-    cleared = results_repository.clear_match_review(dataset_id=dataset_id, result_id=result_id)
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
+    cleared = results_repository.clear_match_review(dataset_id=resolved_dataset_id, result_id=result_id)
     if not cleared:
         typer.echo("Review not found.")
         raise typer.Exit(code=1)
@@ -569,7 +815,8 @@ def matching_clear_review(
 
 @matching_app.command("list-reviews")
 def matching_list_reviews(
-    dataset_id: int = typer.Option(..., "--dataset-id", help="Identifiant local du dataset."),
+    dataset: str | None = typer.Option(None, "--dataset", help="Identifiant ou alias local du dataset."),
+    dataset_id: int | None = typer.Option(None, "--dataset-id", help="Compat: identifiant local du dataset."),
     results_db_path: Path = typer.Option(
         DEFAULT_RACE_DB_PATH,
         "--results-db-path",
@@ -579,7 +826,8 @@ def matching_list_reviews(
     """Liste les revues manuelles enregistrees."""
     results_repository = RaceResultsRepository(results_db_path)
     results_repository.initialize()
-    reviews = results_repository.list_match_reviews(dataset_id=dataset_id)
+    resolved_dataset_id = _resolve_dataset_id(repository=results_repository, dataset=dataset, dataset_id=dataset_id)
+    reviews = results_repository.list_match_reviews(dataset_id=resolved_dataset_id)
     if not reviews:
         typer.echo("No reviews found.")
         raise typer.Exit(code=0)

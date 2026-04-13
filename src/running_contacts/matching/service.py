@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 from rapidfuzz import fuzz, process
 
@@ -279,13 +280,20 @@ def match_dataset(
 
 
 def export_matches_csv(*, report: MatchReport, output_path: Path) -> Path:
+    return export_selected_matches_csv(matches=report.accepted_matches, output_path=output_path)
+
+
+def export_selected_matches_csv(*, matches: list[MatchResult], output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
             handle,
             fieldnames=[
+                "result_id",
                 "dataset_id",
+                "status",
                 "athlete_name",
+                "contact_id",
                 "contact_name",
                 "match_method",
                 "score",
@@ -298,11 +306,14 @@ def export_matches_csv(*, report: MatchReport, output_path: Path) -> Path:
             ],
         )
         writer.writeheader()
-        for match in report.accepted_matches:
+        for match in matches:
             writer.writerow(
                 {
+                    "result_id": match.result_id,
                     "dataset_id": match.dataset_id,
+                    "status": match.status,
                     "athlete_name": match.athlete_name,
+                    "contact_id": match.contact_id or "",
                     "contact_name": match.contact_name,
                     "match_method": match.match_method,
                     "score": f"{match.score:.1f}",
@@ -315,6 +326,41 @@ def export_matches_csv(*, report: MatchReport, output_path: Path) -> Path:
                 }
             )
     return output_path
+
+
+def select_matches(report: MatchReport, *, status: str = "accepted") -> list[MatchResult]:
+    if status == "accepted":
+        return list(report.accepted_matches)
+    if status == "ambiguous":
+        return list(report.ambiguous_matches)
+    if status == "all":
+        return list(report.accepted_matches) + list(report.ambiguous_matches)
+    raise ValueError(f"Unsupported status: {status}")
+
+
+def filter_and_sort_matches(
+    matches: list[MatchResult],
+    *,
+    name_query: str | None = None,
+    team: str | None = None,
+    category: str | None = None,
+    reviewed_only: bool = False,
+    sort_by: str = "position",
+    descending: bool = False,
+) -> list[MatchResult]:
+    filtered = [
+        match
+        for match in matches
+        if _match_filters(
+            match,
+            name_query=name_query,
+            team=team,
+            category=category,
+            reviewed_only=reviewed_only,
+        )
+    ]
+    filtered.sort(key=lambda match: _match_sort_key(match, sort_by=sort_by), reverse=descending)
+    return filtered
 
 
 def _build_contact_aliases(contact: dict) -> list[str]:
@@ -395,3 +441,77 @@ def _is_plausible_fuzzy_candidate(query_tokens: tuple[str, ...], entry: _AliasEn
         or (query_last == entry.last_token and first_similarity >= 80.0)
         or (len(shared_tokens) >= 1 and first_similarity >= 95.0 and last_similarity >= 80.0)
     )
+
+
+def _match_filters(
+    match: MatchResult,
+    *,
+    name_query: str | None,
+    team: str | None,
+    category: str | None,
+    reviewed_only: bool,
+) -> bool:
+    if reviewed_only and match.match_method != "review":
+        return False
+
+    if name_query:
+        normalized_query = normalize_person_name(name_query)
+        haystacks = [
+            normalize_person_name(match.athlete_name),
+            normalize_person_name(match.contact_name),
+        ]
+        if not any(normalized_query in haystack for haystack in haystacks if haystack):
+            return False
+
+    if team:
+        normalized_team = normalize_person_name(team)
+        if normalized_team not in normalize_person_name(match.team):
+            return False
+
+    if category:
+        normalized_category = normalize_person_name(category)
+        if normalized_category not in normalize_person_name(match.category):
+            return False
+
+    return True
+
+
+def _match_sort_key(match: MatchResult, *, sort_by: str) -> tuple:
+    if sort_by == "position":
+        return (_parse_position(match.position_text), normalize_person_name(match.athlete_name))
+    if sort_by == "time":
+        return (_parse_duration(match.finish_time), _parse_position(match.position_text))
+    if sort_by == "athlete":
+        return (normalize_person_name(match.athlete_name), _parse_position(match.position_text))
+    if sort_by == "contact":
+        return (normalize_person_name(match.contact_name), normalize_person_name(match.athlete_name))
+    if sort_by == "team":
+        return (normalize_person_name(match.team), normalize_person_name(match.athlete_name))
+    if sort_by == "score":
+        return (match.score, normalize_person_name(match.athlete_name))
+    raise ValueError(f"Unsupported sort column: {sort_by}")
+
+
+def _parse_position(value: str | None) -> tuple[int, int]:
+    if not value:
+        return (1, 10**9)
+    match = re.search(r"\d+", value)
+    if not match:
+        return (1, 10**9)
+    return (0, int(match.group(0)))
+
+
+def _parse_duration(value: str | None) -> tuple[int, int]:
+    if not value:
+        return (1, 10**9)
+    parts = value.split(":")
+    try:
+        if len(parts) == 3:
+            hours, minutes, seconds = (int(part) for part in parts)
+            return (0, hours * 3600 + minutes * 60 + seconds)
+        if len(parts) == 2:
+            minutes, seconds = (int(part) for part in parts)
+            return (0, minutes * 60 + seconds)
+    except ValueError:
+        pass
+    return (1, 10**9)

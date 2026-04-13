@@ -4,7 +4,7 @@ from pathlib import Path
 
 from running_contacts.contacts.models import ContactMethod, ContactRecord
 from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.service import match_dataset
+from running_contacts.matching.service import filter_and_sort_matches, match_dataset, select_matches
 from running_contacts.race_results.models import RaceDataset, RaceResultRow
 from running_contacts.race_results.storage import RaceResultsRepository
 
@@ -68,6 +68,7 @@ def _seed_results(db_path: Path) -> int:
                 position_text="1.",
                 bib="101",
                 athlete_name="Jean Francois DUPONT",
+                team="Club A",
                 finish_time="0:40:00",
                 raw_row=[],
             ),
@@ -77,6 +78,7 @@ def _seed_results(db_path: Path) -> int:
                 position_text="2.",
                 bib="102",
                 athlete_name="Alice Marten",
+                team="Club B",
                 finish_time="0:41:00",
                 raw_row=[],
             ),
@@ -195,3 +197,27 @@ def test_match_dataset_applies_aliases_and_reviews(tmp_path: Path) -> None:
 
     assert any(match.athlete_name == "Alice Marten" and match.match_method == "exact" for match in report.accepted_matches)
     assert report.reviewed_rejections_count == 1
+
+
+def test_filter_and_sort_matches_supports_team_and_time(tmp_path: Path) -> None:
+    contacts_db_path = tmp_path / "contacts.sqlite3"
+    results_db_path = tmp_path / "race_results.sqlite3"
+    _seed_contacts(contacts_db_path)
+    dataset_id = _seed_results(results_db_path)
+
+    report = match_dataset(
+        contacts_db_path=contacts_db_path,
+        results_db_path=results_db_path,
+        dataset_id=dataset_id,
+        min_score=85.0,
+        min_gap=3.0,
+    )
+
+    matches = filter_and_sort_matches(
+        select_matches(report, status="accepted"),
+        team="",
+        sort_by="time",
+    )
+
+    assert matches[0].finish_time == "0:40:00"
+    assert filter_and_sort_matches(matches, team="Club A")[0].team == "Club A"
