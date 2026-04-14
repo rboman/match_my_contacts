@@ -55,12 +55,26 @@ La troisième brique `matching` est maintenant disponible:
 - alias manuels réutilisables sur les contacts,
 - reviews manuelles pour accepter ou rejeter un match résultat par résultat.
 
+Le matching actuel est jugé suffisamment satisfaisant pour l'usage courant. La priorité produit suivante n'est donc plus l'amélioration du moteur, mais l'ajout d'une petite interface graphique locale simple.
+
 ## Installation
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
+```
+
+Pour installer aussi la GUI desktop PySide6:
+
+```bash
+pip install -e .[gui]
+```
+
+Sous Linux avec une session X11, Qt peut aussi nécessiter la librairie système `libxcb-cursor0`:
+
+```bash
+sudo apt install libxcb-cursor0
 ```
 
 ## Préparer l’accès Google Contacts
@@ -140,6 +154,20 @@ Lancer les tests:
 pytest -q
 ```
 
+Lancer la GUI locale:
+
+```bash
+running-contacts-gui
+```
+
+La première version de la GUI reste volontairement simple:
+
+- interface desktop locale en PySide6,
+- sections `Contacts`, `Race Results` et `Matching`,
+- table centrale unique,
+- lecture utile des données locales existantes,
+- actions avancées encore laissées à la CLI.
+
 Guide pratique d'utilisation:
 
 ```bash
@@ -154,7 +182,7 @@ sed -n '1,220p' HANDOFF.md
 
 ## Roadmap courte
 
-1. Stabiliser la brique `contacts`.
-2. Ajouter des alias manuels ciblés pour corriger les faux négatifs connus.
-3. Introduire éventuellement une petite interface locale de revue des matches.
+1. Ajouter une GUI desktop minimale et lisible au-dessus du socle existant.
+2. Garder le moteur métier et la CLI stables pendant l'ajout de cette GUI.
+3. Étendre ensuite progressivement la GUI aux actions aujourd'hui encore réservées à la CLI.
 4. Étendre `race_results` à d’autres providers si nécessaire.

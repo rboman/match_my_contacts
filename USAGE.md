@@ -22,6 +22,32 @@ running-contacts contacts export-json --output data/exports/contacts.json
 
 The contact ID shown by `contacts list` is useful for manual aliasing and review.
 
+## GUI locale
+
+Install the optional desktop GUI dependencies:
+
+```bash
+pip install -e .[gui]
+```
+
+On Linux/X11, install the Qt system dependency if needed:
+
+```bash
+sudo apt install libxcb-cursor0
+```
+
+Launch the GUI:
+
+```bash
+running-contacts-gui
+```
+
+This first GUI version is intentionally simple:
+
+- it keeps the CLI unchanged,
+- it reads local contacts, datasets, results, and accepted matches,
+- it leaves sync, fetch, export, and review workflows to the CLI for now.
+
 ## 2. Import a race
 
 Fetch an ACN Timing race once and keep it locally:
@@ -148,3 +174,7 @@ running-contacts contacts list --query noel
 running-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
 running-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
 ```
+
+## Current priority
+
+The current matching quality is considered good enough for now. The next development priority is the minimal PySide6 desktop GUI rather than more matching work.

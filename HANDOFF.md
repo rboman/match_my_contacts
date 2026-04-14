@@ -12,6 +12,7 @@ Read this file first when resuming work on `running_contacts` in a later Codex s
   - race dataset aliases,
   - manual review commands (`accept`, `reject`, `clear-review`, `list-reviews`),
   - sorted and filtered listing (`matching list`).
+- a first desktop GUI is now the intended next product step, on top of the existing local-first workflow.
 
 ## Important Local Selectors
 
@@ -108,11 +109,26 @@ HANDOFF.md
 
 Most likely next step:
 
-- another targeted cleanup pass on likely false negatives for `liege-15k-2026`
+- add a minimal local desktop GUI in PySide6 while keeping the CLI and core logic unchanged
 
-Good ways to do that:
+Why this is the next step:
 
-1. inspect one patronymic cluster at a time (`noel`, `halain`, `denoel`, etc.)
-2. add reusable contact aliases when a naming variant is stable
-3. use manual reviews only for one-off decisions
-4. rerun `matching run --dataset liege-15k-2026` after each small batch
+1. the current matching is considered satisfactory for now
+2. the project already has useful local workflows worth exposing graphically
+3. a simple GUI can improve day-to-day usability without changing the core services
+
+Initial GUI scope:
+
+1. `Contacts` section
+2. `Race Results` section
+3. `Matching` section
+4. central table
+5. status bar
+
+Run the GUI locally with:
+
+```bash
+pip install -e .[gui]
+sudo apt install libxcb-cursor0  # if needed on Linux/X11
+running-contacts-gui
+```

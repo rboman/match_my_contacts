@@ -11,8 +11,14 @@ dependencies = [
     "google-auth-oauthlib",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "PySide6",
+]
+
 [project.scripts]
 running-contacts = "running_contacts.cli:app"
+running-contacts-gui = "running_contacts_gui.app:main"
 
 [build-system]
 requires = ["setuptools>=61"]
