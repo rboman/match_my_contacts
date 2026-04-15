@@ -76,7 +76,7 @@ def get_config_path() -> Path:
             base_dir = Path(xdg_config_home).expanduser()
         else:
             base_dir = Path.home() / ".config"
-    return base_dir / "running_contacts" / "config.toml"
+    return base_dir / "match_my_contacts" / "config.toml"
 
 
 def get_project_root() -> Path:

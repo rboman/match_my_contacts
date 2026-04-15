@@ -1,6 +1,6 @@
 # Usage Guide
 
-This file is the practical help for day-to-day use of `running_contacts`.
+This file is the practical help for day-to-day use of `match-my-contacts`.
 
 If you come back in a later Codex session, read `HANDOFF.md` first.
 
@@ -9,19 +9,19 @@ If you come back in a later Codex session, read `HANDOFF.md` first.
 The application now uses a local machine config file:
 
 ```bash
-~/.config/running_contacts/config.toml
+~/.config/match_my_contacts/config.toml
 ```
 
 On Windows, the equivalent location is:
 
 ```powershell
-$env:APPDATA\running_contacts\config.toml
+$env:APPDATA\match_my_contacts\config.toml
 ```
 
 This file is auto-created on first CLI or GUI launch and contains:
 
 ```toml
-data_dir = "/absolute/path/to/running_contacts_data"
+data_dir = "/absolute/path/to/match_my_contacts_data"
 credentials_path = "/absolute/path/to/credentials.json"
 ```
 
@@ -38,7 +38,7 @@ This makes it easy to point several machines to the same Dropbox-backed working 
 Inspect the active config and resolved paths:
 
 ```bash
-running-contacts config show
+match-my-contacts config show
 ```
 
 ## 1. Sync contacts
@@ -46,15 +46,15 @@ running-contacts config show
 If `credentials.json` is at the project root:
 
 ```bash
-running-contacts contacts sync
+match-my-contacts contacts sync
 ```
 
 Useful commands:
 
 ```bash
-running-contacts contacts list
-running-contacts contacts list --query noel
-running-contacts contacts export-json --output data/exports/contacts.json
+match-my-contacts contacts list
+match-my-contacts contacts list --query noel
+match-my-contacts contacts export-json --output data/exports/contacts.json
 ```
 
 The contact ID shown by `contacts list` is useful for manual aliasing and review.
@@ -84,7 +84,7 @@ sudo apt install libxcb-cursor0
 Launch the GUI:
 
 ```bash
-running-contacts-gui
+match-my-contacts-gui
 ```
 
 The GUI is intentionally simple, but already useful:
@@ -99,7 +99,7 @@ The GUI is intentionally simple, but already useful:
 Recommended daily GUI workflow:
 
 ```bash
-running-contacts-gui
+match-my-contacts-gui
 ```
 
 Then:
@@ -130,22 +130,22 @@ Important:
 Fetch an ACN Timing race once and keep it locally:
 
 ```bash
-running-contacts race-results fetch-acn --url 'https://www.acn-timing.com/?lng=FR#/events/2157220339092161/ctx/20260412_liege/generic/197994_1/home/LIVE1'
+match-my-contacts race-results fetch-acn --url 'https://www.acn-timing.com/?lng=FR#/events/2157220339092161/ctx/20260412_liege/generic/197994_1/home/LIVE1'
 ```
 
 Inspect local races:
 
 ```bash
-running-contacts race-results list-datasets
-running-contacts race-results list-aliases
-running-contacts race-results list-results --dataset 1 --query ucci
+match-my-contacts race-results list-datasets
+match-my-contacts race-results list-aliases
+match-my-contacts race-results list-results --dataset 1 --query ucci
 ```
 
 You can assign a short alias to a race:
 
 ```bash
-running-contacts race-results add-alias --dataset-id 1 --alias liege-15k-2026
-running-contacts race-results list-aliases
+match-my-contacts race-results add-alias --dataset-id 1 --alias liege-15k-2026
+match-my-contacts race-results list-aliases
 ```
 
 After that, use `--dataset liege-15k-2026` instead of `--dataset-id 1`.
@@ -155,27 +155,27 @@ After that, use `--dataset liege-15k-2026` instead of `--dataset-id 1`.
 Summary:
 
 ```bash
-running-contacts matching run --dataset liege-15k-2026
-running-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 30
+match-my-contacts matching run --dataset liege-15k-2026
+match-my-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 30
 ```
 
 List matches with filters and sorting:
 
 ```bash
-running-contacts matching list --dataset liege-15k-2026 --sort time
-running-contacts matching list --dataset liege-15k-2026 --sort athlete
-running-contacts matching list --dataset liege-15k-2026 --sort contact
-running-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE
-running-contacts matching list --dataset liege-15k-2026 --status ambiguous
-running-contacts matching list --dataset liege-15k-2026 --name-query noel
-running-contacts matching list --dataset liege-15k-2026 --category SEH
-running-contacts matching list --dataset liege-15k-2026 --reviewed-only
+match-my-contacts matching list --dataset liege-15k-2026 --sort time
+match-my-contacts matching list --dataset liege-15k-2026 --sort athlete
+match-my-contacts matching list --dataset liege-15k-2026 --sort contact
+match-my-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE
+match-my-contacts matching list --dataset liege-15k-2026 --status ambiguous
+match-my-contacts matching list --dataset liege-15k-2026 --name-query noel
+match-my-contacts matching list --dataset liege-15k-2026 --category SEH
+match-my-contacts matching list --dataset liege-15k-2026 --reviewed-only
 ```
 
 Export the same filtered view:
 
 ```bash
-running-contacts matching export-csv --dataset liege-15k-2026 --team TEAMULIEGE --sort time --output data/exports/teamuliege_matches.csv
+match-my-contacts matching export-csv --dataset liege-15k-2026 --team TEAMULIEGE --sort time --output data/exports/teamuliege_matches.csv
 ```
 
 ## 4. Correct false negatives or false positives
@@ -185,8 +185,8 @@ running-contacts matching export-csv --dataset liege-15k-2026 --team TEAMULIEGE 
 Use this when a person appears often under a variant of their name:
 
 ```bash
-running-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
-running-contacts contacts list-aliases --contact-id 691
+match-my-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
+match-my-contacts contacts list-aliases --contact-id 691
 ```
 
 ### Force or reject one result manually
@@ -194,10 +194,10 @@ running-contacts contacts list-aliases --contact-id 691
 Use this when a single result needs a manual decision:
 
 ```bash
-running-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
-running-contacts matching reject --dataset liege-15k-2026 --result-id 5678 --note "homonyme"
-running-contacts matching list-reviews --dataset liege-15k-2026
-running-contacts matching clear-review --dataset liege-15k-2026 --result-id 1234
+match-my-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
+match-my-contacts matching reject --dataset liege-15k-2026 --result-id 5678 --note "homonyme"
+match-my-contacts matching list-reviews --dataset liege-15k-2026
+match-my-contacts matching clear-review --dataset liege-15k-2026 --result-id 1234
 ```
 
 ## 5. Leave and resume later in Codex
@@ -231,25 +231,25 @@ To preserve code state as well as conversation state, commit your work or at lea
 ### New race
 
 ```bash
-running-contacts contacts sync
-running-contacts race-results fetch-acn --url '...'
-running-contacts race-results add-alias --dataset-id 1 --alias liege-15k-2026
-running-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 30
+match-my-contacts contacts sync
+match-my-contacts race-results fetch-acn --url '...'
+match-my-contacts race-results add-alias --dataset-id 1 --alias liege-15k-2026
+match-my-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 30
 ```
 
 ### Explore one team
 
 ```bash
-running-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE --sort time
+match-my-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE --sort time
 ```
 
 ### Clean up ambiguous cases
 
 ```bash
-running-contacts matching list --dataset liege-15k-2026 --status ambiguous
-running-contacts contacts list --query noel
-running-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
-running-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
+match-my-contacts matching list --dataset liege-15k-2026 --status ambiguous
+match-my-contacts contacts list --query noel
+match-my-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
+match-my-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
 ```
 
 ## Current priority

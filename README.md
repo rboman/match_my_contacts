@@ -1,4 +1,4 @@
-# running_contacts
+# match-my-contacts
 
 Outil local-first pour centraliser des contacts, importer des résultats de course, puis croiser les deux sans dépendre à chaque fois des sources externes.
 
@@ -72,13 +72,13 @@ Le projet utilise maintenant un fichier de config local par machine pour choisir
 Fichier de config:
 
 ```bash
-~/.config/running_contacts/config.toml
+~/.config/match_my_contacts/config.toml
 ```
 
 Sous Windows, l'emplacement équivalent est:
 
 ```powershell
-$env:APPDATA\running_contacts\config.toml
+$env:APPDATA\match_my_contacts\config.toml
 ```
 
 La première exécution de la CLI ou de la GUI crée automatiquement ce fichier s'il n'existe pas encore, en pointant vers `data/` à la racine du projet.
@@ -86,7 +86,7 @@ La première exécution de la CLI ou de la GUI crée automatiquement ce fichier 
 Format:
 
 ```toml
-data_dir = "/chemin/absolu/vers/running_contacts_data"
+data_dir = "/chemin/absolu/vers/match_my_contacts_data"
 credentials_path = "/chemin/absolu/vers/credentials.json"
 ```
 
@@ -103,7 +103,7 @@ Cela permet de pointer vers un dossier Dropbox partagé entre machines, à condi
 Pour inspecter la config et les chemins résolus:
 
 ```bash
-running-contacts config show
+match-my-contacts config show
 ```
 
 Pour installer aussi la GUI desktop PySide6:
@@ -133,60 +133,60 @@ Si `credentials.json` est présent à la racine du projet, la commande de sync l
 Tester la CLI:
 
 ```bash
-running-contacts hello
+match-my-contacts hello
 ```
 
 Synchroniser les contacts Google vers SQLite:
 
 ```bash
-running-contacts contacts sync
-running-contacts contacts sync --credentials /chemin/vers/credentials.json
+match-my-contacts contacts sync
+match-my-contacts contacts sync --credentials /chemin/vers/credentials.json
 ```
 
 Récupérer un tableau de résultats ACN Timing:
 
 ```bash
-running-contacts race-results fetch-acn --url 'https://www.acn-timing.com/?lng=FR#/events/2157220339092161/ctx/20260412_liege/generic/197994_1/home/LIVE1'
+match-my-contacts race-results fetch-acn --url 'https://www.acn-timing.com/?lng=FR#/events/2157220339092161/ctx/20260412_liege/generic/197994_1/home/LIVE1'
 ```
 
 Lister les datasets de résultats locaux:
 
 ```bash
-running-contacts race-results list-datasets
-running-contacts race-results add-alias --dataset-id 1 --alias liege-15k-2026
-running-contacts race-results list-results --dataset liege-15k-2026 --query dupont
+match-my-contacts race-results list-datasets
+match-my-contacts race-results add-alias --dataset-id 1 --alias liege-15k-2026
+match-my-contacts race-results list-results --dataset liege-15k-2026 --query dupont
 ```
 
 Lancer le matching local:
 
 ```bash
-running-contacts matching run --dataset liege-15k-2026
-running-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE --sort time
-running-contacts matching export-csv --dataset liege-15k-2026 --output data/exports/matches.csv
+match-my-contacts matching run --dataset liege-15k-2026
+match-my-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE --sort time
+match-my-contacts matching export-csv --dataset liege-15k-2026 --output data/exports/matches.csv
 ```
 
 Corriger les cas limites:
 
 ```bash
-running-contacts contacts list --query noel
-running-contacts contacts add-alias --contact-id 42 --alias "Jean Noel"
-running-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 20
-running-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 42
-running-contacts matching reject --dataset liege-15k-2026 --result-id 5678 --note "homonyme"
-running-contacts matching list-reviews --dataset liege-15k-2026
+match-my-contacts contacts list --query noel
+match-my-contacts contacts add-alias --contact-id 42 --alias "Jean Noel"
+match-my-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 20
+match-my-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 42
+match-my-contacts matching reject --dataset liege-15k-2026 --result-id 5678 --note "homonyme"
+match-my-contacts matching list-reviews --dataset liege-15k-2026
 ```
 
 Lister les contacts locaux:
 
 ```bash
-running-contacts contacts list
-running-contacts contacts list --query dupont
+match-my-contacts contacts list
+match-my-contacts contacts list --query dupont
 ```
 
 Exporter l’état local en JSON:
 
 ```bash
-running-contacts contacts export-json --output data/exports/contacts.json
+match-my-contacts contacts export-json --output data/exports/contacts.json
 ```
 
 Lancer les tests:
@@ -198,7 +198,7 @@ pytest -q
 Lancer la GUI locale:
 
 ```bash
-running-contacts-gui
+match-my-contacts-gui
 ```
 
 La GUI actuelle reste volontairement simple, mais elle est déjà utile au quotidien:
@@ -218,7 +218,7 @@ La GUI actuelle reste volontairement simple, mais elle est déjà utile au quoti
 1. lancer une fois la CLI ou la GUI pour créer le fichier de config local
 2. éditer `config.toml` pour pointer `data_dir` vers un dossier Dropbox partagé
 3. copier le contenu actuel de `data/` vers ce dossier partagé
-4. relancer `running-contacts` ou `running-contacts-gui`
+4. relancer `match-my-contacts` ou `match-my-contacts-gui`
 5. vérifier que contacts, datasets, alias et exports sont bien retrouvés
 
 Précautions:

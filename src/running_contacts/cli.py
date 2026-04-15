@@ -32,7 +32,7 @@ def main() -> None:
 @app.command()
 def hello() -> None:
     """Teste que la CLI fonctionne."""
-    print("running_contacts OK")
+    print("match-my-contacts OK")
 
 
 @config_app.command("show")

@@ -1,1 +1,1 @@
-"""Minimal desktop GUI package for running_contacts."""
+"""Minimal desktop GUI package for match-my-contacts."""

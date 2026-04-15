@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         self.results_db_path = Path(results_db_path or self.app_paths.race_results_db)
         self.state = GuiState()
 
-        self.setWindowTitle("running_contacts")
+        self.setWindowTitle("match-my-contacts")
         self.resize(1280, 760)
 
         self.contacts_query_input = QLineEdit()

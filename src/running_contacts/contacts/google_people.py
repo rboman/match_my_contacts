@@ -30,7 +30,7 @@ def _load_credentials(*, credentials_path: Path, token_path: Path) -> Any:
     except ImportError as exc:
         raise RuntimeError(
             "Google client dependencies are missing. Install the project dependencies "
-            "before running `running-contacts contacts sync`."
+            "before running `match-my-contacts contacts sync`."
         ) from exc
 
     creds = None

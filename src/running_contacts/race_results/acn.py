@@ -61,7 +61,7 @@ class AcnTimingClient:
             url,
             headers={
                 "Accept": "application/json",
-                "User-Agent": "running-contacts/0.1",
+                "User-Agent": "match-my-contacts/0.1",
             },
         )
         try:
