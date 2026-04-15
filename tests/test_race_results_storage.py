@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from running_contacts.race_results.models import RaceDataset, RaceResultRow
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.race_results.models import RaceDataset, RaceResultRow
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 
 def make_dataset() -> RaceDataset:

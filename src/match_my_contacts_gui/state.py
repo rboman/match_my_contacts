@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from running_contacts.matching.models import MatchReport
+from match_my_contacts.matching.models import MatchReport
 
 
 @dataclass(slots=True)

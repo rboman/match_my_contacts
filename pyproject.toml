@@ -18,8 +18,8 @@ gui = [
 ]
 
 [project.scripts]
-match-my-contacts = "running_contacts.cli:app"
-match-my-contacts-gui = "running_contacts_gui.app:main"
+match-my-contacts = "match_my_contacts.cli:app"
+match-my-contacts-gui = "match_my_contacts_gui.app:main"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from running_contacts.contacts.models import ContactMethod, ContactRecord
-from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.models import MatchReport, MatchResult
-from running_contacts.race_results.models import RaceDataset, RaceFetchStats, RaceResultRow
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.contacts.models import ContactMethod, ContactRecord
+from match_my_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.matching.models import MatchReport, MatchResult
+from match_my_contacts.race_results.models import RaceDataset, RaceFetchStats, RaceResultRow
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -18,8 +18,8 @@ pytest.importorskip("PySide6")
 
 from PySide6.QtWidgets import QApplication, QGroupBox, QStatusBar, QTableWidget
 
-from running_contacts.config import get_app_paths
-from running_contacts_gui.main_window import MainWindow
+from match_my_contacts.config import get_app_paths
+from match_my_contacts_gui.main_window import MainWindow
 
 
 @pytest.fixture
@@ -113,7 +113,7 @@ def test_edit_config_updates_main_window_paths(qt_app: QApplication, tmp_path: P
         def selected_credentials_path(self) -> Path:
             return new_credentials
 
-    monkeypatch.setattr("running_contacts_gui.main_window.ConfigDialog", FakeDialog)
+    monkeypatch.setattr("match_my_contacts_gui.main_window.ConfigDialog", FakeDialog)
 
     window.edit_config_button.click()
     qt_app.processEvents()
@@ -186,7 +186,7 @@ def test_export_contacts_json_through_gui(qt_app: QApplication, tmp_path: Path, 
         results_db_path=tmp_path / "race_results.sqlite3",
     )
     monkeypatch.setattr(
-        "running_contacts_gui.main_window.QFileDialog.getSaveFileName",
+        "match_my_contacts_gui.main_window.QFileDialog.getSaveFileName",
         lambda *args, **kwargs: (str(export_path), "JSON Files (*.json)"),
     )
 
@@ -242,7 +242,7 @@ def test_fetch_acn_dataset_through_gui(qt_app: QApplication, tmp_path: Path, mon
         dataset_id = repository.save_dataset(dataset=make_race_dataset(), results=make_race_results())
         return RaceFetchStats(dataset_id=dataset_id, results_count=1)
 
-    monkeypatch.setattr("running_contacts_gui.main_window.fetch_acn_results", fake_fetch_acn_results)
+    monkeypatch.setattr("match_my_contacts_gui.main_window.fetch_acn_results", fake_fetch_acn_results)
     window.results_url_input.setText("https://www.acn-timing.com/demo")
 
     window.fetch_acn_button.click()
@@ -329,7 +329,7 @@ def test_matching_filters_update_table_without_rerunning(qt_app: QApplication, t
         call_count["count"] += 1
         return fake_report
 
-    monkeypatch.setattr("running_contacts_gui.main_window.match_dataset", fake_match_dataset)
+    monkeypatch.setattr("match_my_contacts_gui.main_window.match_dataset", fake_match_dataset)
 
     window.run_matching_button.click()
     qt_app.processEvents()
@@ -371,7 +371,7 @@ def test_export_matches_csv_through_gui(qt_app: QApplication, tmp_path: Path, mo
     export_path = tmp_path / "exports" / "matches.csv"
     window = MainWindow(contacts_db_path=contacts_db, results_db_path=results_db)
     monkeypatch.setattr(
-        "running_contacts_gui.main_window.QFileDialog.getSaveFileName",
+        "match_my_contacts_gui.main_window.QFileDialog.getSaveFileName",
         lambda *args, **kwargs: (str(export_path), "CSV Files (*.csv)"),
     )
     window.matching_dataset_input.setText("demo-race")

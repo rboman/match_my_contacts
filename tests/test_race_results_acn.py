@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from running_contacts.race_results.acn import (
+from match_my_contacts.race_results.acn import (
     AcnFetchedPayload,
     build_dataset,
     parse_acn_url,

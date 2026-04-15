@@ -61,7 +61,7 @@ def build_app_paths(*, data_dir: Path, config_path: Path | None = None) -> AppPa
 
 
 def get_config_path() -> Path:
-    config_home_override = os.environ.get("RUNNING_CONTACTS_CONFIG_HOME")
+    config_home_override = os.environ.get("MATCH_MY_CONTACTS_CONFIG_HOME")
     if config_home_override:
         base_dir = Path(config_home_override).expanduser()
     elif sys.platform.startswith("win"):
@@ -80,7 +80,7 @@ def get_config_path() -> Path:
 
 
 def get_project_root() -> Path:
-    project_root_override = os.environ.get("RUNNING_CONTACTS_PROJECT_ROOT")
+    project_root_override = os.environ.get("MATCH_MY_CONTACTS_PROJECT_ROOT")
     if project_root_override:
         return Path(project_root_override).expanduser().resolve()
 

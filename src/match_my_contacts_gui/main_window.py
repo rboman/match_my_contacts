@@ -22,23 +22,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from running_contacts.config import (
+from match_my_contacts.config import (
     AppPaths,
     build_app_paths,
     default_credentials_path,
     get_app_paths,
     write_app_paths,
 )
-from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.models import MatchReport, MatchResult
-from running_contacts.matching.service import (
+from match_my_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.matching.models import MatchReport, MatchResult
+from match_my_contacts.matching.service import (
     export_selected_matches_csv,
     filter_and_sort_matches,
     match_dataset,
     select_matches,
 )
-from running_contacts.race_results.service import fetch_acn_results
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.race_results.service import fetch_acn_results
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 from .state import GuiState, MatchingFilters
 from .config_dialog import ConfigDialog

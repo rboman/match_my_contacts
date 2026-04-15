@@ -7,8 +7,8 @@ import re
 
 from rapidfuzz import fuzz, process
 
-from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 from .models import MatchReport, MatchResult
 from .normalization import normalize_person_name, normalize_person_name_tokens

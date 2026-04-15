@@ -4,13 +4,13 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from running_contacts.cli import app
-from running_contacts.config import default_credentials_path, get_config_path
-from running_contacts.contacts.models import ContactRecord, SyncStats
-from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.models import MatchReport, MatchResult
-from running_contacts.race_results.models import RaceFetchStats
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.cli import app
+from match_my_contacts.config import default_credentials_path, get_config_path
+from match_my_contacts.contacts.models import ContactRecord, SyncStats
+from match_my_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.matching.models import MatchReport, MatchResult
+from match_my_contacts.race_results.models import RaceFetchStats
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 
 runner = CliRunner()
@@ -71,7 +71,7 @@ def test_contacts_sync_command(monkeypatch: object, tmp_path: Path) -> None:
     def fake_sync_google_contacts(**_: object) -> SyncStats:
         return SyncStats(fetched_count=3, written_count=3, deactivated_count=0, sync_run_id=1)
 
-    monkeypatch.setattr("running_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
+    monkeypatch.setattr("match_my_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
 
     result = runner.invoke(
         app,
@@ -102,7 +102,7 @@ def test_contacts_sync_uses_default_credentials_file(monkeypatch: object, tmp_pa
         captured["credentials_path"] = kwargs["credentials_path"]  # type: ignore[index]
         return SyncStats(fetched_count=1, written_count=1, deactivated_count=0, sync_run_id=1)
 
-    monkeypatch.setattr("running_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
+    monkeypatch.setattr("match_my_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
@@ -122,7 +122,7 @@ def test_contacts_sync_uses_default_credentials_file(monkeypatch: object, tmp_pa
 
 
 def test_contacts_sync_uses_configured_credentials_file(monkeypatch: object, tmp_path: Path) -> None:
-    from running_contacts.config import write_app_paths
+    from match_my_contacts.config import write_app_paths
 
     credentials_path = tmp_path / "shared-credentials.json"
     credentials_path.write_text("{}", encoding="utf-8")
@@ -132,7 +132,7 @@ def test_contacts_sync_uses_configured_credentials_file(monkeypatch: object, tmp
         captured["credentials_path"] = kwargs["credentials_path"]  # type: ignore[index]
         return SyncStats(fetched_count=1, written_count=1, deactivated_count=0, sync_run_id=1)
 
-    monkeypatch.setattr("running_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
+    monkeypatch.setattr("match_my_contacts.cli.sync_google_contacts", fake_sync_google_contacts)
     write_app_paths(data_dir=tmp_path / "shared-data", credentials_path=credentials_path)
 
     result = runner.invoke(app, ["contacts", "sync"])
@@ -175,7 +175,7 @@ def test_race_results_fetch_acn_command(monkeypatch: object, tmp_path: Path) -> 
     def fake_fetch_acn_results(**_: object) -> RaceFetchStats:
         return RaceFetchStats(dataset_id=7, results_count=42)
 
-    monkeypatch.setattr("running_contacts.cli.fetch_acn_results", fake_fetch_acn_results)
+    monkeypatch.setattr("match_my_contacts.cli.fetch_acn_results", fake_fetch_acn_results)
 
     result = runner.invoke(
         app,
@@ -235,7 +235,7 @@ def test_matching_run_command(monkeypatch: object) -> None:
             results_count=11,
         )
 
-    monkeypatch.setattr("running_contacts.cli.match_dataset", fake_match_dataset)
+    monkeypatch.setattr("match_my_contacts.cli.match_dataset", fake_match_dataset)
 
     result = runner.invoke(app, ["matching", "run", "--dataset-id", "7"])
 
@@ -310,7 +310,7 @@ def test_race_results_add_alias_command(tmp_path: Path) -> None:
 
 
 def make_race_dataset():
-    from running_contacts.race_results.models import RaceDataset
+    from match_my_contacts.race_results.models import RaceDataset
 
     return RaceDataset(
         provider="acn_timing",

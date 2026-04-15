@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from running_contacts.contacts.google_people import person_to_contact_record
+from match_my_contacts.contacts.google_people import person_to_contact_record
 
 
 def test_person_to_contact_record_maps_primary_fields() -> None:

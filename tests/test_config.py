@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-from running_contacts.config import (
+from match_my_contacts.config import (
     default_credentials_path,
     default_data_dir,
     ensure_config_exists,
@@ -58,7 +58,7 @@ def test_get_config_path_uses_windows_appdata(monkeypatch: object, tmp_path: Pat
     appdata_dir = tmp_path / "AppData" / "Roaming"
 
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
-    monkeypatch.delenv("RUNNING_CONTACTS_CONFIG_HOME", raising=False)
+    monkeypatch.delenv("MATCH_MY_CONTACTS_CONFIG_HOME", raising=False)
     monkeypatch.setenv("APPDATA", str(appdata_dir))
     monkeypatch.setattr(sys, "platform", "win32")
 

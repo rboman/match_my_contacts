@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Core Python code lives in `src/running_contacts/`. The CLI entry point is `src/running_contacts/cli.py`, exposed as the `match-my-contacts` console script via `pyproject.toml`. Organize code by reusable domain modules such as `contacts`, `race_results`, and `matching`; avoid putting business logic directly in CLI commands. Use `tests/` for automated tests and `data/` only for local runtime artifacts like SQLite databases, raw snapshots, exports, and OAuth tokens.
+Core Python code lives in `src/match_my_contacts/`. The CLI entry point is `src/match_my_contacts/cli.py`, exposed as the `match-my-contacts` console script via `pyproject.toml`. Organize code by reusable domain modules such as `contacts`, `race_results`, and `matching`; avoid putting business logic directly in CLI commands. Use `tests/` for automated tests and `data/` only for local runtime artifacts like SQLite databases, raw snapshots, exports, and OAuth tokens.
 
 ## Build, Test, and Development Commands
 Create a virtual environment and install the package in editable mode:
@@ -18,7 +18,7 @@ Run the CLI locally with `match-my-contacts hello` to confirm the entry point wo
 Target Python 3.11+ and prefer the standard library where practical. Follow PEP 8: 4-space indentation, `snake_case` for functions and modules, `PascalCase` for classes, and short, explicit docstrings where they add value. Keep CLI commands thin: put I/O orchestration in service modules and persistence in repository-style modules. Typing is expected for public functions, parsing code, and data models.
 
 ## Testing Guidelines
-Use `pytest` for all automated tests. Mirror the package structure under `tests/`; for example, logic added in `src/running_contacts/race_results/storage.py` should usually get coverage in `tests/test_race_results_storage.py`. Prefer focused unit tests over live network tests; mock Google/API clients and test URL parsing, mapping, persistence, normalization, and CLI behavior locally. Add regression tests for bug fixes.
+Use `pytest` for all automated tests. Mirror the package structure under `tests/`; for example, logic added in `src/match_my_contacts/race_results/storage.py` should usually get coverage in `tests/test_race_results_storage.py`. Prefer focused unit tests over live network tests; mock Google/API clients and test URL parsing, mapping, persistence, normalization, and CLI behavior locally. Add regression tests for bug fixes.
 
 ## Commit & Pull Request Guidelines
 Recent history uses short, imperative commit subjects such as `Add gitignore and initial project skeleton`. Keep that pattern: one-line summary, imperative mood, and specific scope. Pull requests should explain the functional change, note any new commands or data expectations, and link related issues or notes when relevant. Include CLI examples when behavior visible to users changes.
