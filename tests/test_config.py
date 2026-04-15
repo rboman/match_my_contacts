@@ -58,6 +58,7 @@ def test_get_config_path_uses_windows_appdata(monkeypatch: object, tmp_path: Pat
     appdata_dir = tmp_path / "AppData" / "Roaming"
 
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.delenv("RUNNING_CONTACTS_CONFIG_HOME", raising=False)
     monkeypatch.setenv("APPDATA", str(appdata_dir))
     monkeypatch.setattr(sys, "platform", "win32")
 

@@ -13,6 +13,7 @@ dist/
 
 # Tests / cache
 .pytest_cache/
+pytest-cache-files-*/
 .coverage
 htmlcov/
 
@@ -32,6 +33,7 @@ data/exports/
 .env
 credentials.json
 token.json
+/running_contacts/
 
 # misc
 *.tgz
