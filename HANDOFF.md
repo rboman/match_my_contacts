@@ -41,6 +41,8 @@ Current GUI capabilities:
 - add dataset aliases
 - run matching with local filters
 - export filtered matches to CSV
+- inspect and edit the local config file and resolved paths
+- open a small `Help` menu with `About` and `Credits`
 
 Still CLI-only for now:
 
@@ -203,8 +205,9 @@ Current GUI scope:
 1. `Contacts` section
 2. `Race Results` section
 3. `Matching` section
-4. central table
-5. status bar
+4. `Config` section
+5. central table
+6. status bar
 
 Run the GUI locally with:
 

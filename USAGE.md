@@ -106,6 +106,7 @@ match-my-contacts-gui
 The GUI is intentionally simple, but already useful:
 
 - it keeps the CLI unchanged,
+- it exposes dedicated `Contacts`, `Race Results`, `Matching`, and `Config` tabs,
 - it auto-loads local contacts when the SQLite cache already exists,
 - it syncs Google Contacts and imports Google Contacts CSV exports into the same local database,
 - it shows a modal success or error dialog after `Sync Google`,
@@ -248,11 +249,9 @@ codex resume
 
 If you want the next session to keep the repository context even if you do not resume the exact same interactive session:
 
-```bash
-sed -n '1,220p' HANDOFF.md
-sed -n '1,260p' README.md
-sed -n '1,320p' USAGE.md
-```
+- read `HANDOFF.md`
+- read `README.md`
+- read `USAGE.md`
 
 To preserve code state as well as conversation state, commit your work or at least keep the working tree unchanged before leaving.
 

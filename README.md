@@ -57,7 +57,7 @@ La troisième brique `matching` est maintenant disponible:
 - alias manuels réutilisables sur les contacts,
 - reviews manuelles pour accepter ou rejeter un match résultat par résultat.
 
-Le matching actuel est jugé suffisamment satisfaisant pour l'usage courant. La priorité produit suivante n'est donc plus l'amélioration du moteur, mais l'ajout d'une petite interface graphique locale simple.
+Le matching actuel est jugé suffisamment satisfaisant pour l'usage courant. La priorité produit est maintenant de faire monter la GUI locale en capacité, en particulier autour des workflows de revue manuelle.
 
 ## Installation
 
@@ -66,6 +66,8 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .[gui]
 ```
+
+Python `3.10+` est supporté.
 
 ## Répertoire de données configurable
 
@@ -217,18 +219,18 @@ match-my-contacts-gui
 La GUI actuelle reste volontairement simple, mais elle est déjà utile au quotidien:
 
 - interface desktop locale en PySide6,
-- sections `Contacts`, `Race Results` et `Matching`,
+- onglets `Contacts`, `Race Results`, `Matching` et `Config`,
 - menu `Help` avec `About` et `Credits`,
 - table centrale unique,
 - sync Google depuis l'onglet `Contacts`,
 - dialog de résumé après `Sync Google`,
-- auto-load local des contacts au dÃ©marrage quand la base existe dÃ©jÃ ,
-- import CSV ciblÃ© pour le vrai format exporté par Google Contacts,
+- auto-load local des contacts au démarrage quand la base existe déjà,
+- import CSV ciblé pour le vrai format exporté par Google Contacts,
 - bouton `Empty DB...` avec confirmation explicite,
 - bouton `VACUUM DB` pour compacter `contacts.sqlite3` si besoin,
 - choix des colonnes visibles dans la table contacts,
 - visibilité optionnelle de l'origine des contacts dans la table,
-- fiche contact dÃ©taillÃ©e au double-clic avec les mÃ©tadonnÃ©es de source,
+- fiche contact détaillée au double-clic avec les métadonnées de source,
 - import ACN depuis l'interface,
 - ajout d'alias de dataset,
 - export JSON des contacts,
@@ -253,27 +255,23 @@ Précautions:
 
 Guide pratique d'utilisation:
 
-```bash
-sed -n '1,220p' USAGE.md
-```
+- lire `USAGE.md`
 
 Fichier de reprise pour une future session Codex:
 
-```bash
-sed -n '1,220p' HANDOFF.md
-```
+- lire `HANDOFF.md`
 
-Mise Ã  jour GUI rÃ©cente:
+Mise à jour GUI récente:
 
-- auto-load local des contacts au dÃ©marrage si la base existe dÃ©jÃ 
+- auto-load local des contacts au démarrage si la base existe déjà
 - bouton `Sync Google` dans l'onglet `Contacts`
 - dialog de résumé après `Sync Google`
 - bouton `Empty DB...` avec confirmation et purge des reviews de matching
 - bouton `VACUUM DB` pour compacter la base locale
-- import CSV ciblÃ© pour le vrai format exporté par Google Contacts
+- import CSV ciblé pour le vrai format exporté par Google Contacts
 - choix persistant des colonnes visibles dans la table contacts
 - colonne optionnelle pour afficher l'origine du contact
-- fiche contact dÃ©taillÃ©e au double-clic avec les mÃ©tadonnÃ©es de source
+- fiche contact détaillée au double-clic avec les métadonnées de source
 - menu `Help` avec `About` et `Credits`
 
 ## Roadmap courte
