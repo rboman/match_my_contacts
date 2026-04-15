@@ -27,7 +27,7 @@ STATUS_OPTIONS = ["accepted", "ambiguous", "all"]
 @app.callback()
 def main() -> None:
     """CLI principale de running_contacts."""
-    _app_paths()
+    return None
 
 @app.command()
 def hello() -> None:

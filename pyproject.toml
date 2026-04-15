@@ -3,17 +3,18 @@ name = "running-contacts"
 version = "0.1.0"
 description = "Outil local pour croiser contacts et résultats de courses"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
-    "typer",
-    "rapidfuzz",
-    "google-api-python-client",
-    "google-auth-oauthlib",
+    "typer>=0.12,<1",
+    "rapidfuzz>=3,<4",
+    "google-api-python-client>=2,<3",
+    "google-auth-oauthlib>=1,<2",
+    "tomli>=2.0.1; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
 gui = [
-    "PySide6",
+    "PySide6>=6.10,<7",
 ]
 
 [project.scripts]
@@ -21,5 +22,5 @@ running-contacts = "running_contacts.cli:app"
 running-contacts-gui = "running_contacts_gui.app:main"
 
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"

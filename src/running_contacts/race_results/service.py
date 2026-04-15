@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .acn import AcnTimingClient, build_dataset, parse_acn_url
@@ -20,7 +20,7 @@ def fetch_acn_results(
     payload = client.fetch(descriptor)
 
     raw_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     safe_prefix = f"{descriptor.context_db}_{descriptor.report_key}_{timestamp}"
 
     raw_event_path = raw_dir / f"{safe_prefix}_event.json"

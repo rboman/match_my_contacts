@@ -5,7 +5,11 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-import tomllib
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - exercised only on Python < 3.11
+    import tomli as tomllib
 
 
 @dataclass(slots=True, frozen=True)

@@ -16,13 +16,15 @@ from running_contacts.race_results.storage import RaceResultsRepository
 runner = CliRunner()
 
 
-def test_hello_creates_config_file() -> None:
+def test_hello_does_not_require_config_file() -> None:
     config_path = get_config_path()
+    if config_path.exists():
+        config_path.unlink()
 
     result = runner.invoke(app, ["hello"])
 
     assert result.exit_code == 0
-    assert config_path.exists()
+    assert not config_path.exists()
 
 
 def test_config_show_outputs_resolved_paths() -> None:

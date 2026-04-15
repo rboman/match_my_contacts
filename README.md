@@ -62,7 +62,7 @@ Le matching actuel est jugé suffisamment satisfaisant pour l'usage courant. La 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e .[gui]
 ```
 
 ## Répertoire de données configurable

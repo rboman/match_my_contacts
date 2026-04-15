@@ -67,6 +67,14 @@ Install the optional desktop GUI dependencies:
 pip install -e .[gui]
 ```
 
+Python `3.10+` is supported.
+
+On a fresh Windows virtualenv, upgrading the packaging tools first usually makes dependency resolution much faster:
+
+```powershell
+python -m pip install --upgrade pip setuptools wheel
+```
+
 On Linux/X11, install the Qt system dependency if needed:
 
 ```bash
