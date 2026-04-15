@@ -1,6 +1,6 @@
 # Handoff Notes
 
-Read this file first when resuming work on `running_contacts` in a later Codex session.
+Read this file first when resuming work on `match-my-contacts` in a later Codex session.
 
 ## Current State
 
@@ -39,19 +39,19 @@ Still CLI-only for now:
 Local config file:
 
 ```bash
-~/.config/running_contacts/config.toml
+~/.config/match_my_contacts/config.toml
 ```
 
 On Windows, use:
 
 ```powershell
-$env:APPDATA\running_contacts\config.toml
+$env:APPDATA\match_my_contacts\config.toml
 ```
 
 Supported key:
 
 ```toml
-data_dir = "/absolute/path/to/running_contacts_data"
+data_dir = "/absolute/path/to/match_my_contacts_data"
 credentials_path = "/absolute/path/to/credentials.json"
 ```
 
@@ -72,7 +72,7 @@ Recommended shared usage:
 Useful config inspection command:
 
 ```bash
-running-contacts config show
+match-my-contacts config show
 ```
 
 ## Important Local Selectors
@@ -86,7 +86,7 @@ running-contacts config show
 At the time of this handoff, running:
 
 ```bash
-running-contacts matching run --dataset liege-15k-2026
+match-my-contacts matching run --dataset liege-15k-2026
 ```
 
 returns approximately:
@@ -109,39 +109,39 @@ Reason:
 Sync contacts:
 
 ```bash
-running-contacts contacts sync
+match-my-contacts contacts sync
 ```
 
 Inspect contacts and aliases:
 
 ```bash
-running-contacts contacts list --query noel
-running-contacts contacts list-aliases
+match-my-contacts contacts list --query noel
+match-my-contacts contacts list-aliases
 ```
 
 Inspect races:
 
 ```bash
-running-contacts race-results list-datasets
-running-contacts race-results list-aliases
-running-contacts race-results list-results --dataset liege-15k-2026 --query ucci
+match-my-contacts race-results list-datasets
+match-my-contacts race-results list-aliases
+match-my-contacts race-results list-results --dataset liege-15k-2026 --query ucci
 ```
 
 Inspect matches:
 
 ```bash
-running-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 30
-running-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE --sort time
-running-contacts matching list --dataset liege-15k-2026 --status all --sort athlete
+match-my-contacts matching run --dataset liege-15k-2026 --include-ambiguous --limit 30
+match-my-contacts matching list --dataset liege-15k-2026 --team TEAMULIEGE --sort time
+match-my-contacts matching list --dataset liege-15k-2026 --status all --sort athlete
 ```
 
 Manual corrections:
 
 ```bash
-running-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
-running-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
-running-contacts matching reject --dataset liege-15k-2026 --result-id 5678 --note "homonyme"
-running-contacts matching list-reviews --dataset liege-15k-2026
+match-my-contacts contacts add-alias --contact-id 691 --alias "Jean Noel"
+match-my-contacts matching accept --dataset liege-15k-2026 --result-id 1234 --contact-id 691
+match-my-contacts matching reject --dataset liege-15k-2026 --result-id 5678 --note "homonyme"
+match-my-contacts matching list-reviews --dataset liege-15k-2026
 ```
 
 ## How To Resume Codex
@@ -191,5 +191,5 @@ Run the GUI locally with:
 ```bash
 pip install -e .[gui]
 sudo apt install libxcb-cursor0  # if needed on Linux/X11
-running-contacts-gui
+match-my-contacts-gui
 ```

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-from running_contacts.config import (
+from match_my_contacts.config import (
     default_credentials_path,
     default_data_dir,
     ensure_config_exists,
@@ -33,7 +33,7 @@ def test_config_is_auto_created_and_points_to_current_data_dir() -> None:
 
 
 def test_config_can_point_to_custom_shared_data_dir() -> None:
-    shared_dir = Path.cwd() / "dropbox" / "running_contacts_data"
+    shared_dir = Path.cwd() / "dropbox" / "match_my_contacts_data"
     app_paths = write_app_paths(data_dir=shared_dir)
 
     assert app_paths.data_dir == shared_dir.resolve()
@@ -41,7 +41,7 @@ def test_config_can_point_to_custom_shared_data_dir() -> None:
 
 
 def test_config_can_store_credentials_path() -> None:
-    shared_dir = Path.cwd() / "dropbox" / "running_contacts_data"
+    shared_dir = Path.cwd() / "dropbox" / "match_my_contacts_data"
     credentials_path = Path.cwd() / "secrets" / "credentials.json"
 
     app_paths = write_app_paths(data_dir=shared_dir, credentials_path=credentials_path)
@@ -58,8 +58,8 @@ def test_get_config_path_uses_windows_appdata(monkeypatch: object, tmp_path: Pat
     appdata_dir = tmp_path / "AppData" / "Roaming"
 
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
-    monkeypatch.delenv("RUNNING_CONTACTS_CONFIG_HOME", raising=False)
+    monkeypatch.delenv("MATCH_MY_CONTACTS_CONFIG_HOME", raising=False)
     monkeypatch.setenv("APPDATA", str(appdata_dir))
     monkeypatch.setattr(sys, "platform", "win32")
 
-    assert get_config_path() == appdata_dir / "running_contacts" / "config.toml"
+    assert get_config_path() == appdata_dir / "match_my_contacts" / "config.toml"

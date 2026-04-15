@@ -6,7 +6,7 @@ from typing import Any
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHeaderView, QTableWidget, QTableWidgetItem
 
-from running_contacts.matching.models import MatchReport, MatchResult
+from match_my_contacts.matching.models import MatchReport, MatchResult
 
 
 @dataclass(slots=True, frozen=True)

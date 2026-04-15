@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from running_contacts.contacts.models import ContactMethod, ContactRecord
-from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.service import filter_and_sort_matches, match_dataset, select_matches
-from running_contacts.race_results.models import RaceDataset, RaceResultRow
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.contacts.models import ContactMethod, ContactRecord
+from match_my_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.matching.service import filter_and_sort_matches, match_dataset, select_matches
+from match_my_contacts.race_results.models import RaceDataset, RaceResultRow
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 
 def _seed_contacts(db_path: Path) -> None:

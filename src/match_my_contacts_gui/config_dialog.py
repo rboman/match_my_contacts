@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from running_contacts.config import AppPaths
+from match_my_contacts.config import AppPaths
 
 
 class ConfigDialog(QDialog):

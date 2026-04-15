@@ -2,17 +2,17 @@ from pathlib import Path
 
 import typer
 
-from running_contacts.config import AppPaths, default_credentials_path, get_app_paths
-from running_contacts.contacts.service import sync_google_contacts
-from running_contacts.contacts.storage import ContactsRepository
-from running_contacts.matching.service import (
+from match_my_contacts.config import AppPaths, default_credentials_path, get_app_paths
+from match_my_contacts.contacts.service import sync_google_contacts
+from match_my_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.matching.service import (
     export_selected_matches_csv,
     filter_and_sort_matches,
     match_dataset,
     select_matches,
 )
-from running_contacts.race_results.service import fetch_acn_results
-from running_contacts.race_results.storage import RaceResultsRepository
+from match_my_contacts.race_results.service import fetch_acn_results
+from match_my_contacts.race_results.storage import RaceResultsRepository
 
 app = typer.Typer()
 contacts_app = typer.Typer(help="Synchroniser et interroger les contacts locaux.")
@@ -26,13 +26,13 @@ STATUS_OPTIONS = ["accepted", "ambiguous", "all"]
 
 @app.callback()
 def main() -> None:
-    """CLI principale de running_contacts."""
+    """CLI principale de match_my_contacts."""
     return None
 
 @app.command()
 def hello() -> None:
     """Teste que la CLI fonctionne."""
-    print("running_contacts OK")
+    print("match-my-contacts OK")
 
 
 @config_app.command("show")

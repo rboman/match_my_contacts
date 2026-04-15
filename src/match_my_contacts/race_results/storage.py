@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from running_contacts.matching.normalization import normalize_person_name
+from match_my_contacts.matching.normalization import normalize_person_name
 
 from .models import RaceDataset, RaceResultRow
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from running_contacts.contacts.models import ContactMethod, ContactRecord
-from running_contacts.contacts.storage import ContactsRepository
+from match_my_contacts.contacts.models import ContactMethod, ContactRecord
+from match_my_contacts.contacts.storage import ContactsRepository
 
 
 def make_contact(
